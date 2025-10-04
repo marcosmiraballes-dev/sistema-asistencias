@@ -1,11 +1,10 @@
 /**
  * config.js - Configuración del Frontend
- * IMPORTANTE: Actualiza la URL del API con tu URL de Google Apps Script
+ * URL del API ya configurada
  */
 
 const CONFIG = {
     // 🔑 URL de tu Web App de Google Apps Script
-    // IMPORTANTE: Debe terminar en /exec
     API_URL: 'https://script.google.com/macros/s/AKfycbxo60Ncsdatuzv3FEV56BImMCrjCsxnVa5st1VaLuIqlqwGp2BhgRP8UrAoJn1bWYvVIA/exec',
     
     // Tipos de registro
@@ -32,30 +31,22 @@ const CONFIG = {
 
 /**
  * Función para hacer peticiones al API usando Google Apps Script
- * Google Apps Script requiere un enfoque especial para CORS
  * @param {Object} data - Datos a enviar
  * @returns {Promise<Object>} Respuesta del servidor
  */
 async function callAPI(data) {
     try {
-        // Verificar que la URL esté configurada
-        if (!CONFIG.API_URL || CONFIG.API_URL === 'https://script.google.com/macros/s/AKfycbxo60Ncsdatuzv3FEV56BImMCrjCsxnVa5st1VaLuIqlqwGp2BhgRP8UrAoJn1bWYvVIA/exec') {
-            return {
-                success: false,
-                message: 'Error: API_URL no configurada. Actualiza config.js con tu URL de Google Apps Script'
-            };
-        }
-        
         console.log('Enviando petición al API:', data);
+        console.log('URL del API:', CONFIG.API_URL);
         
         // Para Google Apps Script, usamos fetch con redirect: 'follow'
         const response = await fetch(CONFIG.API_URL, {
             method: 'POST',
             headers: {
-                'Content-Type': 'text/plain' // Importante para evitar preflight
+                'Content-Type': 'text/plain'
             },
             body: JSON.stringify(data),
-            redirect: 'follow' // Necesario para Apps Script
+            redirect: 'follow'
         });
         
         console.log('Respuesta recibida, status:', response.status);
@@ -162,5 +153,6 @@ function getCurrentDate() {
     const day = String(today.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
 }
+
 
 
