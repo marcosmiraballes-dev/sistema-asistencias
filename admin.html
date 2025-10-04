@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Admin - Sistema de Asistencias</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="header-content">
+                <div>
+                    <h2 id="userName">Administrador</h2>
+                    <span class="badge badge-danger">Admin</span>
+                </div>
+                <button id="logoutBtn" class="btn btn-logout">Cerrar Sesión</button>
+            </div>
+        </header>
+
+        <!-- Tabs de navegación -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="dashboard">📊 Dashboard</button>
+            <button class="tab-btn" data-tab="empleados">👥 Empleados</button>
+            <button class="tab-btn" data-tab="servicios">🏢 Servicios</button>
+            <button class="tab-btn" data-tab="registros">📝 Registros</button>
+            <button class="tab-btn" data-tab="dias-descanso">🏖️ Días Descanso</button>
+        </div>
+
+        <!-- Mensaje de feedback -->
+        <div id="adminMessage" class="message"></div>
+
+        <!-- TAB 1: DASHBOARD -->
+        <div id="tab-dashboard" class="tab-content active">
+            <div class="stats-grid">
+                <div class="stat-card success">
+                    <div class="stat-label">Empleados Activos</div>
+                    <div class="stat-value" id="statEmpleados">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Registros Hoy</div>
+                    <div class="stat-value" id="statRegistrosHoy">0</div>
+                </div>
+                <div class="stat-card warning">
+                    <div class="stat-label">Llegadas Tarde</div>
+                    <div class="stat-value" id="statLlegadasTarde">0</div>
+                </div>
+                <div class="stat-card danger">
+                    <div class="stat-label">Días de Descanso</div>
+                    <div class="stat-value" id="statDiasDescanso">0</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Registros de Hoy</h3>
+                <div id="registrosHoyList" class="records-list">
+                    <p class="loading">Cargando registros...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: EMPLEADOS -->
+        <div id="tab-empleados" class="tab-content">
+            <div class="card">
+                <h3>Agregar Nuevo Empleado</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div class="form-group">
+                        <label>Nombre</label>
+                        <input type="text" id="empNombre" class="form-input" placeholder="Nombre">
+                    </div>
+                    <div class="form-group">
+                        <label>Apellido</label>
+                        <input type="text" id="empApellido" class="form-input" placeholder="Apellido">
+                    </div>
+                    <div class="form-group">
+                        <label>Usuario</label>
+                        <input type="text" id="empUsuario" class="form-input" placeholder="usuario123">
+                    </div>
+                    <div class="form-group">
+                        <label>PIN (4 dígitos)</label>
+                        <input type="text" id="empPin" class="form-input" maxlength="4" placeholder="1234">
+                    </div>
+                    <div class="form-group">
+                        <label>Rol</label>
+                        <select id="empRol" class="form-select">
+                            <option value="empleado">Empleado</option>
+                            <option value="supervisor">Supervisor</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Servicio</label>
+                        <select id="empServicio" class="form-select">
+                            <option value="">Cargando...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Hora Entrada</label>
+                        <input type="time" id="empHoraEntrada" class="form-input" value="08:00">
+                    </div>
+                    <div class="form-group">
+                        <label>Hora Salida</label>
+                        <input type="time" id="empHoraSalida" class="form-input" value="17:00">
+                    </div>
+                </div>
+                <button id="btnCrearEmpleado" class="btn btn-primary">Crear Empleado</button>
+            </div>
+
+            <div class="card">
+                <h3>Lista de Empleados</h3>
+                <div class="table-container">
+                    <table class="data-table" id="empleadosTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>Usuario</th>
+                                <th>Rol</th>
+                                <th>Servicio</th>
+                                <th>Horario</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="empleadosTableBody">
+                            <tr><td colspan="8" class="loading">Cargando empleados...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: SERVICIOS -->
+        <div id="tab-servicios" class="tab-content">
+            <div class="card">
+                <h3>Agregar Nuevo Servicio</h3>
+                <div style="display: grid; grid-template-columns: 1fr 2fr auto; gap: 15px; align-items: end;">
+                    <div class="form-group">
+                        <label>Nombre</label>
+                        <input type="text" id="srvNombre" class="form-input" placeholder="Ej: Ventas">
+                    </div>
+                    <div class="form-group">
+                        <label>Descripción</label>
+                        <input type="text" id="srvDescripcion" class="form-input" placeholder="Descripción del servicio">
+                    </div>
+                    <button id="btnCrearServicio" class="btn btn-primary">Crear Servicio</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Lista de Servicios</h3>
+                <div class="table-container">
+                    <table class="data-table" id="serviciosTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>Descripción</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="serviciosTableBody">
+                            <tr><td colspan="5" class="loading">Cargando servicios...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: REGISTROS -->
+        <div id="tab-registros" class="tab-content">
+            <div class="card">
+                <h3>Filtrar Registros</h3>
+                <div style="display: flex; gap: 15px; align-items: end;">
+                    <div class="form-group" style="flex: 1;">
+                        <label>Fecha</label>
+                        <input type="date" id="filtroFecha" class="form-input">
+                    </div>
+                    <button id="btnFiltrarRegistros" class="btn btn-primary">Filtrar</button>
+                    <button id="btnTodosRegistros" class="btn btn-success">Todos los Registros</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Registros</h3>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Empleado</th>
+                                <th>Tipo</th>
+                                <th>Servicio</th>
+                                <th>Fecha</th>
+                                <th>Hora</th>
+                            </tr>
+                        </thead>
+                        <tbody id="registrosTableBody">
+                            <tr><td colspan="6" class="loading">Cargando registros...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 5: DÍAS DE DESCANSO -->
+        <div id="tab-dias-descanso" class="tab-content">
+            <div class="card">
+                <h3>Programar Día de Descanso</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; align-items: end;">
+                    <div class="form-group">
+                        <label>Empleado</label>
+                        <select id="ddEmpleado" class="form-select">
+                            <option value="">Cargando...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha</label>
+                        <input type="date" id="ddFecha" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Motivo</label>
+                        <select id="ddMotivo" class="form-select">
+                            <option>Vacaciones</option>
+                            <option>Permiso Personal</option>
+                            <option>Día Económico</option>
+                            <option>Incapacidad</option>
+                            <option>Otro</option>
+                        </select>
+                    </div>
+                    <button id="btnProgramarDD" class="btn btn-primary">Programar</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Días de Descanso Programados</h3>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Empleado</th>
+                                <th>Fecha</th>
+                                <th>Motivo</th>
+                                <th>Aprobado Por</th>
+                            </tr>
+                        </thead>
+                        <tbody id="diasDescansoTableBody">
+                            <tr><td colspan="5" class="loading">Cargando días de descanso...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loader -->
+        <div id="adminLoader" class="loader" style="display: none;">
+            <div class="spinner"></div>
+            <p>Procesando...</p>
+        </div>
+    </div>
+
+    <!-- IMPORTANTE: config.js DEBE cargarse ANTES de admin.js -->
+    <script src="./config.js"></script>
+    <script src="./admin.js"></script>
+</body>
+</html>

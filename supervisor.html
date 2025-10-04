@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Supervisor - Sistema de Asistencias</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="header-content">
+                <div>
+                    <h2 id="userName">Supervisor</h2>
+                    <span class="badge badge-warning">Supervisor</span>
+                </div>
+                <button id="logoutBtn" class="btn btn-logout">Cerrar Sesión</button>
+            </div>
+        </header>
+
+        <!-- Tabs de navegación -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="registrar">📝 Registrar Asistencia</button>
+            <button class="tab-btn" data-tab="dias-descanso">🏖️ Días de Descanso</button>
+            <button class="tab-btn" data-tab="reportes">📊 Reportes</button>
+            <button class="tab-btn" data-tab="mi-asistencia">👤 Mi Asistencia</button>
+        </div>
+
+        <!-- Mensaje de feedback -->
+        <div id="supervisorMessage" class="message"></div>
+
+        <!-- TAB 1: REGISTRAR ASISTENCIA -->
+        <div id="tab-registrar" class="tab-content active">
+            <div class="card">
+                <h3>Registrar Asistencia de Empleado</h3>
+                
+                <div class="form-group">
+                    <label for="selectEmpleado">Seleccionar Empleado</label>
+                    <select id="selectEmpleado" class="form-select">
+                        <option value="">Cargando empleados...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="selectTipoRegistro">Tipo de Registro</label>
+                    <select id="selectTipoRegistro" class="form-select">
+                        <option value="entrada">✅ Entrada</option>
+                        <option value="salida">🚪 Salida</option>
+                        <option value="salida_almuerzo">🍽️ Salida Almuerzo</option>
+                        <option value="entrada_almuerzo">↩️ Entrada Almuerzo</option>
+                    </select>
+                </div>
+
+                <button id="btnRegistrarAsistencia" class="btn btn-primary">
+                    Registrar Asistencia
+                </button>
+            </div>
+
+            <!-- Registros recientes -->
+            <div class="card">
+                <h3>Registros de Hoy</h3>
+                <div id="registrosHoyList" class="records-list">
+                    <p class="loading">Cargando registros...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: DÍAS DE DESCANSO -->
+        <div id="tab-dias-descanso" class="tab-content">
+            <div class="card">
+                <h3>Programar Día de Descanso</h3>
+                
+                <div class="form-group">
+                    <label for="selectEmpleadoDescanso">Seleccionar Empleado</label>
+                    <select id="selectEmpleadoDescanso" class="form-select">
+                        <option value="">Cargando empleados...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="fechaDescanso">Fecha</label>
+                    <input type="date" id="fechaDescanso" class="form-input">
+                </div>
+
+                <div class="form-group">
+                    <label for="motivoDescanso">Motivo</label>
+                    <select id="motivoDescanso" class="form-select">
+                        <option value="Vacaciones">Vacaciones</option>
+                        <option value="Permiso Personal">Permiso Personal</option>
+                        <option value="Día Económico">Día Económico</option>
+                        <option value="Incapacidad">Incapacidad</option>
+                        <option value="Otro">Otro</option>
+                    </select>
+                </div>
+
+                <button id="btnProgramarDescanso" class="btn btn-primary">
+                    Programar Día de Descanso
+                </button>
+            </div>
+
+            <!-- Lista de días de descanso -->
+            <div class="card">
+                <h3>Días de Descanso Programados</h3>
+                <div id="diasDescansoList" class="records-list">
+                    <p class="loading">Cargando días de descanso...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: REPORTES -->
+        <div id="tab-reportes" class="tab-content">
+            <div class="card">
+                <h3>Reporte de Asistencias</h3>
+                
+                <div class="form-group">
+                    <label for="fechaReporte">Fecha</label>
+                    <input type="date" id="fechaReporte" class="form-input">
+                </div>
+
+                <button id="btnGenerarReporte" class="btn btn-primary">
+                    Generar Reporte
+                </button>
+            </div>
+
+            <div class="card">
+                <h3>Resultados del Reporte</h3>
+                <div id="reporteResultados" class="records-list">
+                    <p class="loading">Selecciona una fecha y genera el reporte</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: MI ASISTENCIA -->
+        <div id="tab-mi-asistencia" class="tab-content">
+            <div class="employee-info">
+                <div class="info-card">
+                    <div class="info-item">
+                        <span class="info-label">Servicio:</span>
+                        <span id="miServicio" class="info-value">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Horario:</span>
+                        <span id="miHorario" class="info-value">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Fecha:</span>
+                        <span id="fechaActual" class="info-value">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botones de asistencia personal -->
+            <div class="attendance-buttons">
+                <button id="btnMiEntrada" class="attendance-btn entrada">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                        <polyline points="10 17 15 12 10 7"></polyline>
+                        <line x1="15" y1="12" x2="3" y2="12"></line>
+                    </svg>
+                    <span>Mi Entrada</span>
+                </button>
+
+                <button id="btnMiSalida" class="attendance-btn salida">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                    </svg>
+                    <span>Mi Salida</span>
+                </button>
+
+                <button id="btnMiSalidaAlmuerzo" class="attendance-btn almuerzo-salida">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <span>Salida Almuerzo</span>
+                </button>
+
+                <button id="btnMiEntradaAlmuerzo" class="attendance-btn almuerzo-entrada">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <span>Entrada Almuerzo</span>
+                </button>
+            </div>
+
+            <div class="card">
+                <h3>Mis Registros de Hoy</h3>
+                <div id="misRegistrosList" class="records-list">
+                    <p class="loading">Cargando registros...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loader -->
+        <div id="supervisorLoader" class="loader" style="display: none;">
+            <div class="spinner"></div>
+            <p>Procesando...</p>
+        </div>
+    </div>
+
+    <!-- IMPORTANTE: config.js DEBE cargarse ANTES de supervisor.js -->
+    <script src="./config.js"></script>
+    <script src="./supervisor.js"></script>
+</body>
+</html>

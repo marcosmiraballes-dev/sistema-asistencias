@@ -113,9 +113,17 @@ async function handleLogin(e) {
             // Guardar datos del empleado
             saveEmpleadoData(response.empleado);
             
-            // Redirigir al dashboard después de 1 segundo
+            // Redirigir según el rol después de 1 segundo
             setTimeout(() => {
-                window.location.href = 'dashboard.html';
+                const rol = response.empleado.rol;
+                
+                if (rol === 'admin') {
+                    window.location.href = 'admin.html';
+                } else if (rol === 'supervisor') {
+                    window.location.href = 'supervisor.html';
+                } else {
+                    window.location.href = 'dashboard.html';
+                }
             }, 1000);
             
         } else {
