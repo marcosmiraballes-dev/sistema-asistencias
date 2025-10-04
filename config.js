@@ -5,9 +5,8 @@
 
 const CONFIG = {
     // 🔑 URL de tu Web App de Google Apps Script
-    // La obtienes al desplegar tu proyecto en Apps Script
-    // Ejemplo: 'https://script.google.com/macros/s/AKfycbz.../exec'
-    API_URL: 'https://script.google.com/macros/s/AKfycbxo60Ncsdatuzv3FEV56BImMCrjCsxnVa5st1VaLuIqlqwGp2BhgRP8UrAoJn1bWYvVIA/exec',
+    // IMPORTANTE: Debe terminar en /exec
+    API_URL: 'TU_URL_DE_GOOGLE_APPS_SCRIPT_AQUI',
     
     // Tipos de registro
     TIPOS_REGISTRO: {
@@ -33,40 +32,49 @@ const CONFIG = {
 
 /**
  * Función para hacer peticiones al API usando Google Apps Script
+ * Google Apps Script requiere un enfoque especial para CORS
  * @param {Object} data - Datos a enviar
  * @returns {Promise<Object>} Respuesta del servidor
  */
 async function callAPI(data) {
     try {
         // Verificar que la URL esté configurada
-        if (!CONFIG.API_URL || CONFIG.API_URL === 'https://script.google.com/macros/s/AKfycbxo60Ncsdatuzv3FEV56BImMCrjCsxnVa5st1VaLuIqlqwGp2BhgRP8UrAoJn1bWYvVIA/exec') {
+        if (!CONFIG.API_URL || CONFIG.API_URL === 'TU_URL_DE_GOOGLE_APPS_SCRIPT_AQUI') {
             return {
                 success: false,
                 message: 'Error: API_URL no configurada. Actualiza config.js con tu URL de Google Apps Script'
             };
         }
         
-        // Construir la URL con parámetros como callback (método alternativo para Apps Script)
-        const url = CONFIG.API_URL + '?action=' + data.action;
+        console.log('Enviando petición al API:', data);
         
-        const response = await fetch(url, {
+        // Para Google Apps Script, usamos fetch con redirect: 'follow'
+        const response = await fetch(CONFIG.API_URL, {
             method: 'POST',
+            headers: {
+                'Content-Type': 'text/plain' // Importante para evitar preflight
+            },
             body: JSON.stringify(data),
-            redirect: 'follow'
+            redirect: 'follow' // Necesario para Apps Script
         });
         
-        // Leer la respuesta como texto primero
-        const textResponse = await response.text();
+        console.log('Respuesta recibida, status:', response.status);
         
-        // Intentar parsear como JSON
+        // Leer respuesta como texto
+        const textResponse = await response.text();
+        console.log('Respuesta del servidor:', textResponse);
+        
+        // Parsear JSON
         try {
             const result = JSON.parse(textResponse);
+            console.log('JSON parseado:', result);
             return result;
         } catch (parseError) {
-            console.error('Error al parsear JSON:', textResponse);
+            console.error('Error al parsear JSON:', parseError);
+            console.error('Texto recibido:', textResponse);
             return {
                 success: false,
-                message: 'Error al procesar la respuesta del servidor'
+                message: 'Error al procesar respuesta del servidor'
             };
         }
         
