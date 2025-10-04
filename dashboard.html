@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Sistema de Asistencias</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="header-content">
+                <h2 id="userName">Cargando...</h2>
+                <button id="logoutBtn" class="btn btn-logout">Cerrar Sesión</button>
+            </div>
+        </header>
+
+        <!-- Información del empleado -->
+        <div class="employee-info">
+            <div class="info-card">
+                <div class="info-item">
+                    <span class="info-label">Servicio:</span>
+                    <span id="userService" class="info-value">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Horario:</span>
+                    <span id="userSchedule" class="info-value">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Fecha:</span>
+                    <span id="currentDate" class="info-value">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botones de registro de asistencia -->
+        <div class="attendance-buttons">
+            <button id="btnEntrada" class="attendance-btn entrada">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                    <polyline points="10 17 15 12 10 7"></polyline>
+                    <line x1="15" y1="12" x2="3" y2="12"></line>
+                </svg>
+                <span>Entrada</span>
+            </button>
+
+            <button id="btnSalida" class="attendance-btn salida">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+                <span>Salida</span>
+            </button>
+
+            <button id="btnSalidaAlmuerzo" class="attendance-btn almuerzo-salida">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span>Salida Almuerzo</span>
+            </button>
+
+            <button id="btnEntradaAlmuerzo" class="attendance-btn almuerzo-entrada">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span>Entrada Almuerzo</span>
+            </button>
+        </div>
+
+        <!-- Mensaje de feedback -->
+        <div id="dashboardMessage" class="message"></div>
+
+        <!-- Registros de hoy -->
+        <div class="today-records">
+            <h3>Registros de Hoy</h3>
+            <div id="recordsList" class="records-list">
+                <p class="loading">Cargando registros...</p>
+            </div>
+        </div>
+
+        <!-- Loader -->
+        <div id="dashboardLoader" class="loader" style="display: none;">
+            <div class="spinner"></div>
+            <p>Procesando...</p>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="dashboard.js"></script>
+</body>
+</html>

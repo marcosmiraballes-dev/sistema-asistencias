@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Asistencias - Login</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="login-card">
+            <!-- Logo o título -->
+            <div class="logo">
+                <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+            </div>
+
+            <h1>Sistema de Asistencias</h1>
+            <p class="subtitle">Ingresa tus credenciales para continuar</p>
+
+            <!-- Formulario de Login -->
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="usuario">Usuario</label>
+                    <input 
+                        type="text" 
+                        id="usuario" 
+                        name="usuario" 
+                        required 
+                        autocomplete="username"
+                        placeholder="Ingresa tu usuario"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="pin">PIN (4 dígitos)</label>
+                    <input 
+                        type="password" 
+                        id="pin" 
+                        name="pin" 
+                        required 
+                        maxlength="4"
+                        pattern="\d{4}"
+                        inputmode="numeric"
+                        placeholder="****"
+                    >
+                </div>
+
+                <!-- Mensaje de error/éxito -->
+                <div id="message" class="message"></div>
+
+                <!-- Botón de submit -->
+                <button type="submit" id="loginBtn" class="btn btn-primary">
+                    Iniciar Sesión
+                </button>
+            </form>
+
+            <!-- Loader -->
+            <div id="loader" class="loader" style="display: none;">
+                <div class="spinner"></div>
+                <p>Verificando credenciales...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
