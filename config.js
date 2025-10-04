@@ -7,7 +7,7 @@ const CONFIG = {
     // 🔑 URL de tu Web App de Google Apps Script
     // La obtienes al desplegar tu proyecto en Apps Script
     // Ejemplo: 'https://script.google.com/macros/s/AKfycbz.../exec'
-    API_URL: '1d5b1D413HKxhPE7IWpfC1lfpx6Qq_fZtSzJjAEDW1rQ',
+    API_URL: 'https://script.google.com/macros/s/AKfycbxo60Ncsdatuzv3FEV56BImMCrjCsxnVa5st1VaLuIqlqwGp2BhgRP8UrAoJn1bWYvVIA/exec',
     
     // Tipos de registro
     TIPOS_REGISTRO: {
@@ -32,33 +32,49 @@ const CONFIG = {
 };
 
 /**
- * Función para hacer peticiones al API
+ * Función para hacer peticiones al API usando Google Apps Script
  * @param {Object} data - Datos a enviar
  * @returns {Promise<Object>} Respuesta del servidor
  */
 async function callAPI(data) {
     try {
-        const response = await fetch(CONFIG.API_URL, {
+        // Verificar que la URL esté configurada
+        if (!CONFIG.API_URL || CONFIG.API_URL === 'https://script.google.com/macros/s/AKfycbxo60Ncsdatuzv3FEV56BImMCrjCsxnVa5st1VaLuIqlqwGp2BhgRP8UrAoJn1bWYvVIA/exec') {
+            return {
+                success: false,
+                message: 'Error: API_URL no configurada. Actualiza config.js con tu URL de Google Apps Script'
+            };
+        }
+        
+        // Construir la URL con parámetros como callback (método alternativo para Apps Script)
+        const url = CONFIG.API_URL + '?action=' + data.action;
+        
+        const response = await fetch(url, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
             body: JSON.stringify(data),
             redirect: 'follow'
         });
         
-        if (!response.ok) {
-            throw new Error('Error en la petición: ' + response.status);
-        }
+        // Leer la respuesta como texto primero
+        const textResponse = await response.text();
         
-        const result = await response.json();
-        return result;
+        // Intentar parsear como JSON
+        try {
+            const result = JSON.parse(textResponse);
+            return result;
+        } catch (parseError) {
+            console.error('Error al parsear JSON:', textResponse);
+            return {
+                success: false,
+                message: 'Error al procesar la respuesta del servidor'
+            };
+        }
         
     } catch (error) {
         console.error('Error en callAPI:', error);
         return {
             success: false,
-            message: 'Error de conexión con el servidor: ' + error.message
+            message: 'Error de conexión: ' + error.message
         };
     }
 }
