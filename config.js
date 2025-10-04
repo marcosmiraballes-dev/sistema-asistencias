@@ -6,7 +6,7 @@
 const CONFIG = {
     // 🔑 URL de tu Web App de Google Apps Script
     // IMPORTANTE: Debe terminar en /exec
-    API_URL: 'TU_URL_DE_GOOGLE_APPS_SCRIPT_AQUI',
+    API_URL: 'https://script.google.com/macros/s/AKfycbxo60Ncsdatuzv3FEV56BImMCrjCsxnVa5st1VaLuIqlqwGp2BhgRP8UrAoJn1bWYvVIA/exec',
     
     // Tipos de registro
     TIPOS_REGISTRO: {
@@ -39,7 +39,7 @@ const CONFIG = {
 async function callAPI(data) {
     try {
         // Verificar que la URL esté configurada
-        if (!CONFIG.API_URL || CONFIG.API_URL === 'TU_URL_DE_GOOGLE_APPS_SCRIPT_AQUI') {
+        if (!CONFIG.API_URL || CONFIG.API_URL === 'https://script.google.com/macros/s/AKfycbxo60Ncsdatuzv3FEV56BImMCrjCsxnVa5st1VaLuIqlqwGp2BhgRP8UrAoJn1bWYvVIA/exec') {
             return {
                 success: false,
                 message: 'Error: API_URL no configurada. Actualiza config.js con tu URL de Google Apps Script'
@@ -162,3 +162,4 @@ function getCurrentDate() {
     const day = String(today.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
 }
+
