@@ -621,6 +621,20 @@ body {
     border-left-color: var(--danger-color);
 }
 
+.stat-card.clickable {
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stat-card.clickable:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+}
+
+.stat-card.clickable:active {
+    transform: translateY(-2px);
+}
+
 .stat-label {
     font-size: 14px;
     color: var(--gray);
@@ -637,4 +651,5 @@ body {
     font-size: 40px;
     opacity: 0.2;
     float: right;
+
 }
