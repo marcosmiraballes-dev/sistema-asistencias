@@ -164,6 +164,46 @@ function getCurrentDate() {
     return `${year}-${month}-${day}`;
 }
 
+/**
+ * Sistema de timeout de sesión por inactividad
+ */
+const SESSION_TIMEOUT = 10 * 60 * 1000; // 10 minutos en milisegundos
+let inactivityTimer;
+
+/**
+ * Reinicia el temporizador de inactividad
+ */
+function resetInactivityTimer() {
+    // Limpiar el timer anterior
+    if (inactivityTimer) {
+        clearTimeout(inactivityTimer);
+    }
+    
+    // Crear nuevo timer
+    inactivityTimer = setTimeout(() => {
+        // Cerrar sesión automáticamente
+        clearEmpleadoData();
+        alert('Tu sesión ha expirado por inactividad. Por favor, inicia sesión nuevamente.');
+        window.location.href = 'index.html';
+    }, SESSION_TIMEOUT);
+}
+
+/**
+ * Inicializar el sistema de timeout (llamar en cada dashboard)
+ */
+function initInactivityTimeout() {
+    // Eventos que resetean el timer (cualquier actividad del usuario)
+    const eventos = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    
+    eventos.forEach(evento => {
+        document.addEventListener(evento, resetInactivityTimer, true);
+    });
+    
+    // Iniciar el primer timer
+    resetInactivityTimer();
+}
+
+
 
 
 
