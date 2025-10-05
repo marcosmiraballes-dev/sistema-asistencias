@@ -98,14 +98,26 @@ function loadSupervisorInfo() {
  */
 async function loadEmpleados() {
     try {
-        const response = await callAPI({
+        console.log('=== DEBUG loadEmpleados ===');
+        console.log('supervisorActual:', supervisorActual);
+        console.log('servicio_id:', supervisorActual.servicio_id);
+        
+        const requestData = {
             action: 'listar_empleados',
             solo_activos: true,
-            servicio_id: supervisorActual.servicio_id  // FILTRAR POR SERVICIO
-        });
+            servicio_id: supervisorActual.servicio_id
+        };
+        
+        console.log('Enviando request:', requestData);
+        
+        const response = await callAPI(requestData);
+        
+        console.log('Respuesta recibida:', response);
         
         if (response.success && response.empleados) {
             empleadosActivos = response.empleados;
+            
+            console.log('Empleados filtrados:', empleadosActivos);
             
             // Llenar select de registro de asistencia
             selectEmpleado.innerHTML = '<option value="">-- Selecciona un empleado --</option>';
@@ -471,3 +483,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     setInterval(loadRegistrosHoy, 30000);
 
 });
+
