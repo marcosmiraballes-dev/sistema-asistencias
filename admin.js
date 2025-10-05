@@ -158,7 +158,15 @@ async function loadDashboardStats() {
         
         if (ddResponse.success) {
             diasDescansoData = ddResponse.dias_descanso;
-            statDiasDescanso.textContent = diasDescansoData.length;
+            // Filtrar solo descansos legítimos (excluir suspensiones y faltas)
+            const descansosLegitimos = diasDescansoData.filter(d => 
+                d.motivo === 'Vacaciones' || 
+                d.motivo === 'Permiso Personal' || 
+                d.motivo === 'Descanso' || 
+                d.motivo === 'Incapacidad' || 
+                d.motivo === 'Día Festivo'
+            );
+            statDiasDescanso.textContent = descansosLegitimos.length;
             
             // Contar por motivo
             const vacaciones = diasDescansoData.filter(d => d.motivo === 'Vacaciones').length;
@@ -666,8 +674,15 @@ function filtrarDashboard(tipo) {
             break;
             
         case 'descanso-total':
-            titulo = '🏖️ Todos los Días de Descanso';
-            contenido = generarListaDescansos(diasDescansoData);
+            titulo = '🏖️ Días de Descanso Legítimos';
+            const descansosLegitimos = diasDescansoData.filter(d => 
+                d.motivo === 'Vacaciones' || 
+                d.motivo === 'Permiso Personal' || 
+                d.motivo === 'Descanso' || 
+                d.motivo === 'Incapacidad' || 
+                d.motivo === 'Día Festivo'
+            );
+            contenido = generarListaDescansos(descansosLegitimos);
             break;
             
         case 'Vacaciones':
@@ -799,5 +814,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 // Hacer funciones globales para onclick
 window.filtrarDashboard = filtrarDashboard;
 window.cerrarFiltro = cerrarFiltro;
+
 
 
