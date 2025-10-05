@@ -849,27 +849,33 @@ function aplicarFiltroServicio() {
     const servicioId = parseInt(document.getElementById('filtroServicio').value);
     const filteredContent = document.getElementById('filteredContent');
     
+    console.log('=== DEBUG FILTRO SERVICIO ===');
+    console.log('Servicio ID seleccionado:', servicioId);
+    console.log('Tipo filtro actual:', tipoFiltroActual);
+    console.log('Datos sin filtrar:', resultadosSinFiltrar);
+    console.log('Empleados disponibles:', empleadosData);
+    
     let datosFiltrados = resultadosSinFiltrar;
     
-    // Si hay servicio seleccionado, filtrar
     if (servicioId) {
         if (tipoFiltroActual === 'tarde') {
-            // Para registros, filtrar por servicio del registro
             datosFiltrados = resultadosSinFiltrar.filter(r => {
-                // Necesitamos obtener el empleado para saber su servicio_id
                 const emp = empleadosData.find(e => e.nombre + ' ' + e.apellido === r.nombre_completo);
+                console.log('Buscando empleado:', r.nombre_completo, 'Encontrado:', emp);
                 return emp && emp.servicio_id === servicioId;
             });
         } else {
-            // Para días de descanso, filtrar por servicio del empleado
             datosFiltrados = resultadosSinFiltrar.filter(d => {
-                const emp = empleadosData.find(e => e.nombre + ' ' + e.apellido === d.empleado_nombre);
+                const nombreCompleto = d.empleado_nombre;
+                const emp = empleadosData.find(e => (e.nombre + ' ' + e.apellido) === nombreCompleto);
+                console.log('Buscando empleado:', nombreCompleto, 'Encontrado:', emp);
                 return emp && emp.servicio_id === servicioId;
             });
         }
     }
     
-    // Mostrar resultados filtrados
+    console.log('Datos filtrados:', datosFiltrados);
+    
     if (tipoFiltroActual === 'tarde') {
         filteredContent.innerHTML = generarListaRegistros(datosFiltrados);
     } else {
@@ -881,6 +887,7 @@ function aplicarFiltroServicio() {
 window.filtrarDashboard = filtrarDashboard;
 window.cerrarFiltro = cerrarFiltro;
 window.aplicarFiltroServicio = aplicarFiltroServicio;
+
 
 
 
