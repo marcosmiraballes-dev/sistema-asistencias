@@ -755,10 +755,6 @@ function cerrarFiltro() {
     document.getElementById('filteredResults').style.display = 'none';
 }
 
-// Hacer funciones globales para onclick
-window.filtrarDashboard = filtrarDashboard;
-window.cerrarFiltro = cerrarFiltro;
-
 // Inicialización
 document.addEventListener('DOMContentLoaded', async () => {
     if (!checkSession()) return;
@@ -799,5 +795,9 @@ document.addEventListener('DOMContentLoaded', async () => {
    initInactivityTimeout();
 
 });
+
+// Hacer funciones globales para onclick
+window.filtrarDashboard = filtrarDashboard;
+window.cerrarFiltro = cerrarFiltro;
 
 
