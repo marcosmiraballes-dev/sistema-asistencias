@@ -76,6 +76,13 @@
             </div>
         </div>
 
+                    <!-- Sección de resultados filtrados (oculta por defecto) -->
+        <div id="filteredResults" class="card" style="display: none;">
+            <h3 id="filteredTitle">Resultados</h3>
+            <button class="btn btn-secondary" onclick="cerrarFiltro()" style="margin-bottom: 15px;">✕ Cerrar</button>
+            <div id="filteredContent" class="records-list"></div>
+        </div>
+            
             <div class="card">
                 <h3>Registros de Hoy</h3>
                 <div id="registrosHoyList" class="records-list">
@@ -295,4 +302,5 @@
 </body>
 
 </html>
+
 
