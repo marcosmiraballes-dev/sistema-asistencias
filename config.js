@@ -133,12 +133,22 @@ function formatDate(fecha) {
 
 /**
  * Formatea una hora en formato legible
- * @param {string} hora - Hora en formato HH:MM:SS
- * @returns {string} Hora formateada
+ * @param {string} hora - Hora en formato HH:MM:SS o ISO timestamp
+ * @returns {string} Hora formateada HH:MM
  */
 function formatTime(hora) {
     if (!hora) return '';
-    const parts = hora.split(':');
+    
+    // Si es un timestamp ISO (contiene T o Z)
+    if (typeof hora === 'string' && (hora.includes('T') || hora.includes('Z'))) {
+        const date = new Date(hora);
+        const hours = String(date.getUTCHours()).padStart(2, '0');
+        const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+        return `${hours}:${minutes}`;
+    }
+    
+    // Si ya es HH:MM:SS, extraer solo HH:MM
+    const parts = hora.toString().split(':');
     return `${parts[0]}:${parts[1]}`;
 }
 
@@ -153,6 +163,7 @@ function getCurrentDate() {
     const day = String(today.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
 }
+
 
 
 
