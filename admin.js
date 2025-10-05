@@ -647,6 +647,118 @@ window.activarEmpleado = activarEmpleado;
 window.desactivarServicio = desactivarServicio;
 window.activarServicio = activarServicio;
 
+/**
+ * Filtra y muestra resultados según el tipo de card clickeado
+ */
+function filtrarDashboard(tipo) {
+    const filteredResults = document.getElementById('filteredResults');
+    const filteredTitle = document.getElementById('filteredTitle');
+    const filteredContent = document.getElementById('filteredContent');
+    
+    let titulo = '';
+    let contenido = '';
+    
+    switch(tipo) {
+        case 'tarde':
+            titulo = '⚠️ Llegadas Tarde Hoy';
+            const tarde = registrosHoyData.filter(r => r.tipo === 'entrada' && r.tarde);
+            contenido = generarListaRegistros(tarde);
+            break;
+            
+        case 'descanso-total':
+            titulo = '🏖️ Todos los Días de Descanso';
+            contenido = generarListaDescansos(diasDescansoData);
+            break;
+            
+        case 'Vacaciones':
+        case 'Permiso Personal':
+        case 'Incapacidad':
+        case 'Suspensión':
+        case 'Falta sin Justificación':
+        case 'Falta con Justificación':
+            titulo = `📋 ${tipo}`;
+            const filtrados = diasDescansoData.filter(d => d.motivo === tipo);
+            contenido = generarListaDescansos(filtrados);
+            break;
+            
+        default:
+            return;
+    }
+    
+    filteredTitle.textContent = titulo;
+    filteredContent.innerHTML = contenido;
+    filteredResults.style.display = 'block';
+    
+    // Scroll suave hacia los resultados
+    filteredResults.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/**
+ * Genera HTML para lista de registros
+ */
+function generarListaRegistros(registros) {
+    if (registros.length === 0) {
+        return '<p class="loading">No hay registros</p>';
+    }
+    
+    let html = '';
+    registros.forEach(reg => {
+        html += `
+            <div class="record-item ${reg.tipo}">
+                <div>
+                    <div class="record-type">${reg.nombre_completo}</div>
+                    <div style="font-size: 12px; color: #6b7280;">
+                        ${reg.servicio} - Entrada: ${formatTime(reg.hora)}
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <div class="record-time" style="color: #ef4444;">TARDE</div>
+                    <div style="font-size: 12px; color: #6b7280;">${reg.minutos_tarde || 0} min</div>
+                </div>
+            </div>
+        `;
+    });
+    
+    return html;
+}
+
+/**
+ * Genera HTML para lista de días de descanso
+ */
+function generarListaDescansos(descansos) {
+    if (descansos.length === 0) {
+        return '<p class="loading">No hay registros</p>';
+    }
+    
+    let html = '';
+    descansos.forEach(d => {
+        html += `
+            <div class="record-item">
+                <div>
+                    <div class="record-type">${d.empleado_nombre}</div>
+                    <div style="font-size: 12px; color: #6b7280;">
+                        ${d.motivo} - Aprobado por: ${d.aprobado_por}
+                    </div>
+                </div>
+                <div class="record-time">${d.fecha}</div>
+            </div>
+        `;
+    });
+    
+    return html;
+}
+
+/**
+ * Cierra el panel de resultados filtrados
+ */
+function cerrarFiltro() {
+    document.getElementById('filteredResults').style.display = 'none';
+}
+
+// Hacer funciones globales para onclick
+window.filtrarDashboard = filtrarDashboard;
+window.cerrarFiltro = cerrarFiltro;
+
 // Inicialización
 document.addEventListener('DOMContentLoaded', async () => {
     if (!checkSession()) return;
@@ -687,4 +799,5 @@ document.addEventListener('DOMContentLoaded', async () => {
    initInactivityTimeout();
 
 });
+
 
