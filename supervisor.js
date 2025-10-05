@@ -94,13 +94,14 @@ function loadSupervisorInfo() {
 }
 
 /**
- * Carga la lista de empleados activos
+ * Carga la lista de empleados activos (filtrados por servicio del supervisor)
  */
 async function loadEmpleados() {
     try {
         const response = await callAPI({
             action: 'listar_empleados',
-            solo_activos: true
+            solo_activos: true,
+            servicio_id: supervisorActual.servicio_id  // FILTRAR POR SERVICIO
         });
         
         if (response.success && response.empleados) {
@@ -111,7 +112,7 @@ async function loadEmpleados() {
             empleadosActivos.forEach(emp => {
                 const option = document.createElement('option');
                 option.value = emp.id;
-                option.textContent = `${emp.nombre} ${emp.apellido} - ${emp.servicio_nombre}`;
+                option.textContent = `${emp.nombre} ${emp.apellido}`;
                 selectEmpleado.appendChild(option);
             });
             
@@ -129,7 +130,6 @@ async function loadEmpleados() {
         selectEmpleado.innerHTML = '<option value="">Error al cargar empleados</option>';
     }
 }
-
 /**
  * Registra asistencia de un empleado
  */
@@ -469,4 +469,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Auto-actualizar cada 30 segundos
     setInterval(loadRegistrosHoy, 30000);
+
 });
