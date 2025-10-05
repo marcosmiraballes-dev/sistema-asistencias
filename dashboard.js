@@ -248,4 +248,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Auto-actualizar registros cada 30 segundos
     setInterval(loadTodayRecords, 30000);
+
+    initInactivityTimeout();
+
 });
