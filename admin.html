@@ -33,24 +33,48 @@
 
         <!-- TAB 1: DASHBOARD -->
         <div id="tab-dashboard" class="tab-content active">
-            <div class="stats-grid">
-                <div class="stat-card success">
-                    <div class="stat-label">Empleados Activos</div>
-                    <div class="stat-value" id="statEmpleados">0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Registros Hoy</div>
-                    <div class="stat-value" id="statRegistrosHoy">0</div>
-                </div>
-                <div class="stat-card warning">
-                    <div class="stat-label">Llegadas Tarde</div>
-                    <div class="stat-value" id="statLlegadasTarde">0</div>
-                </div>
-                <div class="stat-card danger">
-                    <div class="stat-label">Días de Descanso</div>
-                    <div class="stat-value" id="statDiasDescanso">0</div>
-                </div>
+        <div class="stats-grid">
+            <div class="stat-card success clickable" onclick="filtrarDashboard('empleados')">
+                <div class="stat-label">Empleados Activos</div>
+                <div class="stat-value" id="statEmpleados">0</div>
             </div>
+            <div class="stat-card clickable" onclick="filtrarDashboard('registros')">
+                <div class="stat-label">Registros Hoy</div>
+                <div class="stat-value" id="statRegistrosHoy">0</div>
+            </div>
+            <div class="stat-card warning clickable" onclick="filtrarDashboard('tarde')">
+                <div class="stat-label">Llegadas Tarde</div>
+                <div class="stat-value" id="statLlegadasTarde">0</div>
+            </div>
+            <div class="stat-card danger clickable" onclick="filtrarDashboard('descanso-total')">
+                <div class="stat-label">Días de Descanso (Total)</div>
+                <div class="stat-value" id="statDiasDescanso">0</div>
+            </div>
+            <div class="stat-card clickable" onclick="filtrarDashboard('Vacaciones')">
+                <div class="stat-label">Vacaciones</div>
+                <div class="stat-value" id="statVacaciones">0</div>
+            </div>
+            <div class="stat-card clickable" onclick="filtrarDashboard('Permiso Personal')">
+                <div class="stat-label">Permisos Personales</div>
+                <div class="stat-value" id="statPermisos">0</div>
+            </div>
+            <div class="stat-card clickable" onclick="filtrarDashboard('Incapacidad')">
+                <div class="stat-label">Incapacidades</div>
+                <div class="stat-value" id="statIncapacidades">0</div>
+            </div>
+            <div class="stat-card clickable" onclick="filtrarDashboard('Suspensión')">
+                <div class="stat-label">Suspensiones</div>
+                <div class="stat-value" id="statSuspensiones">0</div>
+            </div>
+            <div class="stat-card danger clickable" onclick="filtrarDashboard('Falta sin Justificación')">
+                <div class="stat-label">Faltas Sin Justificación</div>
+                <div class="stat-value" id="statFaltasSin">0</div>
+            </div>
+            <div class="stat-card warning clickable" onclick="filtrarDashboard('Falta con Justificación')">
+                <div class="stat-label">Faltas Con Justificación</div>
+                <div class="stat-value" id="statFaltasCon">0</div>
+            </div>
+        </div>
 
             <div class="card">
                 <h3>Registros de Hoy</h3>
@@ -271,3 +295,4 @@
 </body>
 
 </html>
+
