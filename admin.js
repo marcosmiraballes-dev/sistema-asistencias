@@ -629,7 +629,7 @@ window.activarServicio = activarServicio;
 // Inicialización
 document.addEventListener('DOMContentLoaded', async () => {
     if (!checkSession()) return;
-    
+
     loadAdminInfo();
     await loadDashboardStats();
     await loadServicios();
@@ -662,4 +662,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Auto-actualizar dashboard cada 30 segundos
     setInterval(loadDashboardStats, 30000);
+
+   initInactivityTimeout();
+
 });
