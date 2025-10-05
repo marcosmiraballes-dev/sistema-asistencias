@@ -788,6 +788,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadAdminInfo();
     await loadDashboardStats();
     await loadServicios();
+    await loadEmpleados();
     
     // Event listeners
     btnCrearEmpleado.addEventListener('click', crearEmpleado);
@@ -887,6 +888,7 @@ function aplicarFiltroServicio() {
 window.filtrarDashboard = filtrarDashboard;
 window.cerrarFiltro = cerrarFiltro;
 window.aplicarFiltroServicio = aplicarFiltroServicio;
+
 
 
 
