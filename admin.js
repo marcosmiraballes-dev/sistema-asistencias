@@ -6,6 +6,8 @@
 let adminActual = null;
 let empleadosData = [];
 let serviciosData = [];
+let diasDescansoData = [];
+let registrosHoyData = [];
 
 // Elementos del DOM
 const userName = document.getElementById('userName');
@@ -98,6 +100,9 @@ function loadAdminInfo() {
 /**
  * Carga estadísticas del dashboard
  */
+/**
+ * Carga estadísticas del dashboard
+ */
 async function loadDashboardStats() {
     try {
         // Cargar empleados activos
@@ -117,19 +122,19 @@ async function loadDashboardStats() {
         });
         
         if (regResponse.success) {
-            const registros = regResponse.registros;
-            statRegistrosHoy.textContent = registros.length;
+            registrosHoyData = regResponse.registros;
+            statRegistrosHoy.textContent = registrosHoyData.length;
             
-            // Contar llegadas tarde (tipo entrada con minutos_tarde)
-            const llegadasTarde = registros.filter(r => r.tipo === 'entrada' && r.tarde).length;
+            // Contar llegadas tarde
+            const llegadasTarde = registrosHoyData.filter(r => r.tipo === 'entrada' && r.tarde).length;
             statLlegadasTarde.textContent = llegadasTarde;
             
             // Mostrar registros
-            if (registros.length === 0) {
+            if (registrosHoyData.length === 0) {
                 registrosHoyList.innerHTML = '<p class="loading">No hay registros para hoy</p>';
             } else {
                 registrosHoyList.innerHTML = '';
-                registros.forEach(registro => {
+                registrosHoyData.forEach(registro => {
                     const item = document.createElement('div');
                     item.className = `record-item ${registro.tipo}`;
                     item.innerHTML = `
@@ -152,7 +157,23 @@ async function loadDashboardStats() {
         });
         
         if (ddResponse.success) {
-            statDiasDescanso.textContent = ddResponse.dias_descanso.length;
+            diasDescansoData = ddResponse.dias_descanso;
+            statDiasDescanso.textContent = diasDescansoData.length;
+            
+            // Contar por motivo
+            const vacaciones = diasDescansoData.filter(d => d.motivo === 'Vacaciones').length;
+            const permisos = diasDescansoData.filter(d => d.motivo === 'Permiso Personal').length;
+            const incapacidades = diasDescansoData.filter(d => d.motivo === 'Incapacidad').length;
+            const suspensiones = diasDescansoData.filter(d => d.motivo === 'Suspensión').length;
+            const faltasSin = diasDescansoData.filter(d => d.motivo === 'Falta sin Justificación').length;
+            const faltasCon = diasDescansoData.filter(d => d.motivo === 'Falta con Justificación').length;
+            
+            document.getElementById('statVacaciones').textContent = vacaciones;
+            document.getElementById('statPermisos').textContent = permisos;
+            document.getElementById('statIncapacidades').textContent = incapacidades;
+            document.getElementById('statSuspensiones').textContent = suspensiones;
+            document.getElementById('statFaltasSin').textContent = faltasSin;
+            document.getElementById('statFaltasCon').textContent = faltasCon;
         }
         
     } catch (error) {
@@ -666,3 +687,4 @@ document.addEventListener('DOMContentLoaded', async () => {
    initInactivityTimeout();
 
 });
+
