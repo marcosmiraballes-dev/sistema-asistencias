@@ -8,6 +8,8 @@ let empleadosData = [];
 let serviciosData = [];
 let diasDescansoData = [];
 let registrosHoyData = [];
+let resultadosSinFiltrar = []; // Guardar resultados completos antes de filtrar
+let tipoFiltroActual = ''; // Guardar el tipo de filtro actual
 
 // Elementos del DOM
 const userName = document.getElementById('userName');
@@ -662,27 +664,27 @@ function filtrarDashboard(tipo) {
     const filteredResults = document.getElementById('filteredResults');
     const filteredTitle = document.getElementById('filteredTitle');
     const filteredContent = document.getElementById('filteredContent');
+    const filtroServicio = document.getElementById('filtroServicio');
     
+    tipoFiltroActual = tipo;
     let titulo = '';
-    let contenido = '';
+    let datos = [];
     
     switch(tipo) {
         case 'tarde':
             titulo = '⚠️ Llegadas Tarde Hoy';
-            const tarde = registrosHoyData.filter(r => r.tipo === 'entrada' && r.tarde);
-            contenido = generarListaRegistros(tarde);
+            datos = registrosHoyData.filter(r => r.tipo === 'entrada' && r.tarde);
             break;
             
         case 'descanso-total':
             titulo = '🏖️ Días de Descanso Legítimos';
-            const descansosLegitimos = diasDescansoData.filter(d => 
+            datos = diasDescansoData.filter(d => 
                 d.motivo === 'Vacaciones' || 
                 d.motivo === 'Permiso Personal' || 
                 d.motivo === 'Descanso' || 
                 d.motivo === 'Incapacidad' || 
                 d.motivo === 'Día Festivo'
             );
-            contenido = generarListaDescansos(descansosLegitimos);
             break;
             
         case 'Vacaciones':
@@ -692,19 +694,28 @@ function filtrarDashboard(tipo) {
         case 'Falta sin Justificación':
         case 'Falta con Justificación':
             titulo = `📋 ${tipo}`;
-            const filtrados = diasDescansoData.filter(d => d.motivo === tipo);
-            contenido = generarListaDescansos(filtrados);
+            datos = diasDescansoData.filter(d => d.motivo === tipo);
             break;
             
         default:
             return;
     }
     
-    filteredTitle.textContent = titulo;
-    filteredContent.innerHTML = contenido;
-    filteredResults.style.display = 'block';
+    // Guardar datos sin filtrar
+    resultadosSinFiltrar = datos;
     
-    // Scroll suave hacia los resultados
+    // Cargar servicios en el dropdown
+    cargarServiciosFiltro();
+    
+    // Mostrar resultados
+    filteredTitle.textContent = titulo;
+    if (tipo === 'tarde') {
+        filteredContent.innerHTML = generarListaRegistros(datos);
+    } else {
+        filteredContent.innerHTML = generarListaDescansos(datos);
+    }
+    
+    filteredResults.style.display = 'block';
     filteredResults.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -811,9 +822,66 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 });
 
+/**
+ * Carga servicios en el filtro
+ */
+function cargarServiciosFiltro() {
+    const filtroServicio = document.getElementById('filtroServicio');
+    filtroServicio.innerHTML = '<option value="">Todos los servicios</option>';
+    
+    if (serviciosData && serviciosData.length > 0) {
+        serviciosData.filter(s => s.activo).forEach(srv => {
+            const option = document.createElement('option');
+            option.value = srv.id;
+            option.textContent = srv.nombre;
+            filtroServicio.appendChild(option);
+        });
+    }
+    
+    // Reset al valor "Todos"
+    filtroServicio.value = '';
+}
+
+/**
+ * Aplica filtro por servicio
+ */
+function aplicarFiltroServicio() {
+    const servicioId = parseInt(document.getElementById('filtroServicio').value);
+    const filteredContent = document.getElementById('filteredContent');
+    
+    let datosFiltrados = resultadosSinFiltrar;
+    
+    // Si hay servicio seleccionado, filtrar
+    if (servicioId) {
+        if (tipoFiltroActual === 'tarde') {
+            // Para registros, filtrar por servicio del registro
+            datosFiltrados = resultadosSinFiltrar.filter(r => {
+                // Necesitamos obtener el empleado para saber su servicio_id
+                const emp = empleadosData.find(e => e.nombre + ' ' + e.apellido === r.nombre_completo);
+                return emp && emp.servicio_id === servicioId;
+            });
+        } else {
+            // Para días de descanso, filtrar por servicio del empleado
+            datosFiltrados = resultadosSinFiltrar.filter(d => {
+                const emp = empleadosData.find(e => e.nombre + ' ' + e.apellido === d.empleado_nombre);
+                return emp && emp.servicio_id === servicioId;
+            });
+        }
+    }
+    
+    // Mostrar resultados filtrados
+    if (tipoFiltroActual === 'tarde') {
+        filteredContent.innerHTML = generarListaRegistros(datosFiltrados);
+    } else {
+        filteredContent.innerHTML = generarListaDescansos(datosFiltrados);
+    }
+}
+
 // Hacer funciones globales para onclick
 window.filtrarDashboard = filtrarDashboard;
 window.cerrarFiltro = cerrarFiltro;
+window.aplicarFiltroServicio = aplicarFiltroServicio;
+
 
 
 
