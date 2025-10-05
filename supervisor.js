@@ -483,6 +483,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Auto-actualizar cada 30 segundos
     setInterval(loadRegistrosHoy, 30000);
 
+initInactivityTimeout();
+
+    
 });
+
 
 
