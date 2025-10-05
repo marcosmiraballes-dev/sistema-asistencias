@@ -86,8 +86,9 @@ function loadSupervisorInfo() {
     userName.textContent = `${supervisorActual.nombre} ${supervisorActual.apellido}`;
     miServicio.textContent = supervisorActual.servicio_nombre || 'Sin servicio';
     
-    const horaEntrada = supervisorActual.hora_entrada || '08:00';
-    const horaSalida = supervisorActual.hora_salida || '17:00';
+    // Formatear horas correctamente
+    const horaEntrada = formatTime(supervisorActual.hora_entrada);
+    const horaSalida = formatTime(supervisorActual.hora_salida);
     miHorario.textContent = `${horaEntrada} - ${horaSalida}`;
     
     fechaActual.textContent = formatDate(getCurrentDate());
@@ -483,4 +484,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     setInterval(loadRegistrosHoy, 30000);
 
 });
+
 
