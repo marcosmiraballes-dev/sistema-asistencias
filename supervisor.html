@@ -23,7 +23,7 @@
         <div class="tabs">
             <button class="tab-btn active" data-tab="registrar">📝 Registrar Asistencia</button>
             <button class="tab-btn" data-tab="dias-descanso">🏖️ Días de Descanso</button>
-            <button class="tab-btn" data-tab="reportes">📊 Reportes</button>
+            <button class="tab-btn" data-tab="faltas">⚠️ Registrar Faltas</button>
             <button class="tab-btn" data-tab="mi-asistencia">👤 Mi Asistencia</button>
         </div>
 
@@ -66,7 +66,7 @@
             </div>
         </div>
 
-        <!-- TAB 2: DÍAS DE DESCANSO -->
+        <!-- TAB 2: DÍAS DE DESCANSO (CORREGIDO) -->
         <div id="tab-dias-descanso" class="tab-content">
             <div class="card">
                 <h3>Programar Día de Descanso</h3>
@@ -91,9 +91,6 @@
                         <option value="Descanso">Descanso</option>
                         <option value="Incapacidad">Incapacidad</option>
                         <option value="Día Festivo">Día Festivo</option>
-                        <option value="Suspensión">Suspensión</option>
-                        <option value="Falta sin Justificación">Falta sin Justificación</option>
-                        <option value="Falta con Justificación">Falta con Justificación</option>
                     </select>
                 </div>
 
@@ -111,25 +108,42 @@
             </div>
         </div>
 
-        <!-- TAB 3: REPORTES -->
-        <div id="tab-reportes" class="tab-content">
+        <!-- TAB 3: REGISTRAR FALTAS (NUEVO) -->
+        <div id="tab-faltas" class="tab-content">
             <div class="card">
-                <h3>Reporte de Asistencias</h3>
+                <h3>Registrar Falta</h3>
                 
                 <div class="form-group">
-                    <label for="fechaReporte">Fecha</label>
-                    <input type="date" id="fechaReporte" class="form-input">
+                    <label for="selectEmpleadoFalta">Seleccionar Empleado</label>
+                    <select id="selectEmpleadoFalta" class="form-select">
+                        <option value="">Cargando empleados...</option>
+                    </select>
                 </div>
 
-                <button id="btnGenerarReporte" class="btn btn-primary">
-                    Generar Reporte
+                <div class="form-group">
+                    <label for="fechaFalta">Fecha de la Falta</label>
+                    <input type="date" id="fechaFalta" class="form-input">
+                </div>
+
+                <div class="form-group">
+                    <label for="tipoFalta">Tipo de Falta</label>
+                    <select id="tipoFalta" class="form-select">
+                        <option value="Falta sin Justificación">Falta sin Justificación</option>
+                        <option value="Falta con Justificación">Falta con Justificación</option>
+                        <option value="Suspensión">Suspensión</option>
+                    </select>
+                </div>
+
+                <button id="btnRegistrarFalta" class="btn btn-primary">
+                    Registrar Falta
                 </button>
             </div>
 
+            <!-- Lista de faltas registradas -->
             <div class="card">
-                <h3>Resultados del Reporte</h3>
-                <div id="reporteResultados" class="records-list">
-                    <p class="loading">Selecciona una fecha y genera el reporte</p>
+                <h3>Faltas Registradas</h3>
+                <div id="faltasRegistradasList" class="records-list">
+                    <p class="loading">Cargando faltas...</p>
                 </div>
             </div>
         </div>
@@ -209,5 +223,4 @@
     <script src="./config.js"></script>
     <script src="./supervisor.js"></script>
 </body>
-
 </html>
