@@ -1,6 +1,6 @@
 /**
  * supervisor.js - Lógica del dashboard del supervisor
- * VERSIÓN CORREGIDA
+ * VERSIÓN COMPLETA CON DEBUG
  */
 
 // Variable global para almacenar datos
@@ -26,7 +26,7 @@ const motivoDescanso = document.getElementById('motivoDescanso');
 const btnProgramarDescanso = document.getElementById('btnProgramarDescanso');
 const diasDescansoList = document.getElementById('diasDescansoList');
 
-// TAB 3: Registro de Faltas (NUEVO)
+// TAB 3: Registro de Faltas
 const selectEmpleadoFalta = document.getElementById('selectEmpleadoFalta');
 const fechaFalta = document.getElementById('fechaFalta');
 const tipoFalta = document.getElementById('tipoFalta');
@@ -131,7 +131,7 @@ async function loadEmpleados() {
                 selectEmpleadoDescanso.appendChild(option);
             });
             
-            // Llenar select de faltas (NUEVO)
+            // Llenar select de faltas
             selectEmpleadoFalta.innerHTML = '<option value="">-- Selecciona un empleado --</option>';
             empleadosActivos.forEach(emp => {
                 const option = document.createElement('option');
@@ -222,12 +222,19 @@ async function loadRegistrosHoy() {
 }
 
 /**
- * Programa un día de descanso (CORREGIDO)
+ * Programa un día de descanso
+ * CON DEBUG
  */
 async function programarDiaDescanso() {
     const empleadoId = parseInt(selectEmpleadoDescanso.value);
     const fecha = fechaDescanso.value;
     const motivo = motivoDescanso.value;
+    
+    // ✅ DEBUG
+    console.log('=== DEBUG PROGRAMAR DESCANSO ===');
+    console.log('empleadoId:', empleadoId, 'tipo:', typeof empleadoId);
+    console.log('fecha:', fecha, 'tipo:', typeof fecha);
+    console.log('motivo:', motivo, 'tipo:', typeof motivo);
     
     if (!empleadoId || !fecha || !motivo) {
         showMessage('Completa todos los campos', 'error');
@@ -241,12 +248,21 @@ async function programarDiaDescanso() {
     toggleLoader(true);
     
     try {
-        const response = await callAPI({
+        const requestData = {
             action: 'programar_dia_descanso',
             empleado_id: empleadoId,
             fecha: fecha,
             motivo: motivo
-        });
+        };
+        
+        // ✅ DEBUG
+        console.log('Datos a enviar:', requestData);
+        console.log('JSON stringified:', JSON.stringify(requestData));
+        
+        const response = await callAPI(requestData);
+        
+        // ✅ DEBUG
+        console.log('Respuesta recibida:', response);
         
         if (response.success) {
             showMessage(response.message, 'success');
@@ -299,12 +315,19 @@ async function loadDiasDescanso() {
 }
 
 /**
- * Registra una falta (NUEVO)
+ * Registra una falta
+ * CON DEBUG
  */
 async function registrarFalta() {
     const empleadoId = parseInt(selectEmpleadoFalta.value);
     const fecha = fechaFalta.value;
     const motivo = tipoFalta.value;
+    
+    // ✅ DEBUG
+    console.log('=== DEBUG REGISTRAR FALTA ===');
+    console.log('empleadoId:', empleadoId, 'tipo:', typeof empleadoId);
+    console.log('fecha:', fecha, 'tipo:', typeof fecha);
+    console.log('motivo:', motivo, 'tipo:', typeof motivo);
     
     if (!empleadoId || !fecha || !motivo) {
         showMessage('Completa todos los campos', 'error');
@@ -318,12 +341,21 @@ async function registrarFalta() {
     toggleLoader(true);
     
     try {
-        const response = await callAPI({
+        const requestData = {
             action: 'registrar_falta',
             empleado_id: empleadoId,
             fecha: fecha,
             motivo: motivo
-        });
+        };
+        
+        // ✅ DEBUG
+        console.log('Datos a enviar:', requestData);
+        console.log('JSON stringified:', JSON.stringify(requestData));
+        
+        const response = await callAPI(requestData);
+        
+        // ✅ DEBUG
+        console.log('Respuesta recibida:', response);
         
         if (response.success) {
             showMessage(response.message, 'success');
@@ -341,7 +373,7 @@ async function registrarFalta() {
 }
 
 /**
- * Carga las faltas registradas (NUEVO)
+ * Carga las faltas registradas
  */
 async function loadFaltasRegistradas() {
     try {
@@ -474,7 +506,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Event listeners
     btnRegistrarAsistencia.addEventListener('click', registrarAsistenciaEmpleado);
     btnProgramarDescanso.addEventListener('click', programarDiaDescanso);
-    btnRegistrarFalta.addEventListener('click', registrarFalta); // NUEVO
+    btnRegistrarFalta.addEventListener('click', registrarFalta);
     
     btnMiEntrada.addEventListener('click', () => {
         if (confirm('¿Registrar tu ENTRADA?')) {
@@ -511,4 +543,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     setInterval(loadRegistrosHoy, 30000);
     
     initInactivityTimeout();
+});/ Auto-actualizar cada 30 segundos
+    setInterval(loadRegistrosHoy, 30000);
+    
+    initInactivityTimeout();
 });
+
