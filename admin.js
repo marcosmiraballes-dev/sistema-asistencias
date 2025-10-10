@@ -165,7 +165,6 @@ async function loadDashboardStats() {
         // Empleados activos
         if (empResponse.success) {
             statEmpleados.textContent = empResponse.empleados.length;
-            // Guardar en cache para uso posterior
             setCache('empleados', empResponse.empleados);
             empleadosData = empResponse.empleados;
         }
@@ -814,7 +813,6 @@ function generarListaRegistros(registros) {
 
 /**
  * Genera HTML para lista de días de descanso
- * CORREGIDO - Usa campo "Empleado" correcto
  */
 function generarListaDescansos(descansos) {
     if (descansos.length === 0) {
@@ -849,6 +847,7 @@ function cerrarFiltro() {
     document.getElementById('filteredResults').style.display = 'none';
 }
 
+/**
  * Carga servicios en el filtro
  */
 function cargarServiciosFiltro() {
@@ -990,12 +989,3 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     initInactivityTimeout();
 });
-
-
-
-
-
-
-
-
-
