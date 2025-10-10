@@ -593,6 +593,7 @@ async function programarDiaDescanso() {
 
 /**
  * Cargar días de descanso
+ * CORREGIDO - Usa campo "Empleado" correcto
  */
 async function loadDiasDescanso() {
     try {
@@ -610,13 +611,17 @@ async function loadDiasDescanso() {
             
             diasDescansoTableBody.innerHTML = '';
             dias.forEach(dia => {
+                // ✅ CORRECCIÓN: Usar campo "Empleado" con mayúscula
+                const nombreEmpleado = dia.Empleado || 'Sin nombre';
+                const aprobadoPor = dia.aprobado_por || 'Sin info';
+                
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${dia.id}</td>
-                    <td>${dia.empleado_nombre}</td>
+                    <td>${nombreEmpleado}</td>
                     <td>${dia.fecha}</td>
                     <td>${dia.motivo}</td>
-                    <td>${dia.aprobado_por}</td>
+                    <td>${aprobadoPor}</td>
                 `;
                 diasDescansoTableBody.appendChild(row);
             });
@@ -750,6 +755,7 @@ function generarListaRegistros(registros) {
 
 /**
  * Genera HTML para lista de días de descanso
+ * CORREGIDO - Usa campo "Empleado" correcto
  */
 function generarListaDescansos(descansos) {
     if (descansos.length === 0) {
@@ -758,12 +764,16 @@ function generarListaDescansos(descansos) {
     
     let html = '';
     descansos.forEach(d => {
+        // ✅ CORRECCIÓN: Usar campo "Empleado" con mayúscula
+        const nombreEmpleado = d.Empleado || 'Sin nombre';
+        const aprobadoPor = d.aprobado_por || 'Sin info';
+        
         html += `
             <div class="record-item">
                 <div>
-                    <div class="record-type">${d.empleado_nombre}</div>
+                    <div class="record-type">${nombreEmpleado}</div>
                     <div style="font-size: 12px; color: #6b7280;">
-                        ${d.motivo} - Aprobado por: ${d.aprobado_por}
+                        ${d.motivo} - Aprobado por: ${aprobadoPor}
                     </div>
                 </div>
                 <div class="record-time">${d.fecha}</div>
@@ -888,6 +898,7 @@ function aplicarFiltroServicio() {
 window.filtrarDashboard = filtrarDashboard;
 window.cerrarFiltro = cerrarFiltro;
 window.aplicarFiltroServicio = aplicarFiltroServicio;
+
 
 
 
