@@ -296,14 +296,18 @@ async function loadDiasDescanso() {
             
             diasDescansoList.innerHTML = '';
             response.dias_descanso.forEach(dia => {
+                // ✅ CORRECCIÓN: Usar campo "Empleado" con mayúscula
+                const nombreEmpleado = dia.Empleado || 'Sin nombre';
+                const aprobadoPor = dia.aprobado_por || 'Sin info';
+                
                 const item = document.createElement('div');
                 item.className = 'record-item';
                 item.innerHTML = `
                     <div>
-                        <div class="record-type">${dia.empleado_nombre}</div>
+                        <div class="record-type">${nombreEmpleado}</div>
                         <div style="font-size: 12px; color: #6b7280;">${dia.motivo} - ${dia.fecha}</div>
                     </div>
-                    <div style="font-size: 12px; color: #6b7280;">Por: ${dia.aprobado_por}</div>
+                    <div style="font-size: 12px; color: #6b7280;">Por: ${aprobadoPor}</div>
                 `;
                 diasDescansoList.appendChild(item);
             });
@@ -313,6 +317,7 @@ async function loadDiasDescanso() {
         diasDescansoList.innerHTML = '<p class="loading">Error al cargar días de descanso</p>';
     }
 }
+
 
 /**
  * Registra una falta
@@ -389,14 +394,18 @@ async function loadFaltasRegistradas() {
             
             faltasRegistradasList.innerHTML = '';
             response.faltas.forEach(falta => {
+                // ✅ CORRECCIÓN: Usar campo "Empleado" con mayúscula
+                const nombreEmpleado = falta.Empleado || 'Sin nombre';
+                const registradaPor = falta.registrada_por || 'Sin info';
+                
                 const item = document.createElement('div');
                 item.className = 'record-item';
                 item.innerHTML = `
                     <div>
-                        <div class="record-type">${falta.empleado_nombre}</div>
+                        <div class="record-type">${nombreEmpleado}</div>
                         <div style="font-size: 12px; color: #6b7280;">${falta.motivo} - ${falta.fecha}</div>
                     </div>
-                    <div style="font-size: 12px; color: #6b7280;">Por: ${falta.registrada_por}</div>
+                    <div style="font-size: 12px; color: #6b7280;">Por: ${registradaPor}</div>
                 `;
                 faltasRegistradasList.appendChild(item);
             });
@@ -406,6 +415,7 @@ async function loadFaltasRegistradas() {
         faltasRegistradasList.innerHTML = '<p class="loading">Error al cargar faltas</p>';
     }
 }
+
 
 /**
  * Registra asistencia personal del supervisor
@@ -544,5 +554,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     initInactivityTimeout();
 });
+
 
 
