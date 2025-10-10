@@ -543,9 +543,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     setInterval(loadRegistrosHoy, 30000);
     
     initInactivityTimeout();
-});/ Auto-actualizar cada 30 segundos
-    setInterval(loadRegistrosHoy, 30000);
-    
-    initInactivityTimeout();
 });
+
 
