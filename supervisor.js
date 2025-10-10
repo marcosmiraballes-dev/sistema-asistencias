@@ -1,5 +1,6 @@
 /**
  * supervisor.js - Lógica del dashboard del supervisor
+ * VERSIÓN CORREGIDA
  */
 
 // Variable global para almacenar datos
@@ -25,10 +26,12 @@ const motivoDescanso = document.getElementById('motivoDescanso');
 const btnProgramarDescanso = document.getElementById('btnProgramarDescanso');
 const diasDescansoList = document.getElementById('diasDescansoList');
 
-// TAB 3: Reportes
-const fechaReporte = document.getElementById('fechaReporte');
-const btnGenerarReporte = document.getElementById('btnGenerarReporte');
-const reporteResultados = document.getElementById('reporteResultados');
+// TAB 3: Registro de Faltas (NUEVO)
+const selectEmpleadoFalta = document.getElementById('selectEmpleadoFalta');
+const fechaFalta = document.getElementById('fechaFalta');
+const tipoFalta = document.getElementById('tipoFalta');
+const btnRegistrarFalta = document.getElementById('btnRegistrarFalta');
+const faltasRegistradasList = document.getElementById('faltasRegistradasList');
 
 // TAB 4: Mi Asistencia
 const miServicio = document.getElementById('miServicio');
@@ -99,26 +102,16 @@ function loadSupervisorInfo() {
  */
 async function loadEmpleados() {
     try {
-        console.log('=== DEBUG loadEmpleados ===');
-        console.log('supervisorActual:', supervisorActual);
-        console.log('servicio_id:', supervisorActual.servicio_id);
-        
         const requestData = {
             action: 'listar_empleados',
             solo_activos: true,
             servicio_id: supervisorActual.servicio_id
         };
         
-        console.log('Enviando request:', requestData);
-        
         const response = await callAPI(requestData);
-        
-        console.log('Respuesta recibida:', response);
         
         if (response.success && response.empleados) {
             empleadosActivos = response.empleados;
-            
-            console.log('Empleados filtrados:', empleadosActivos);
             
             // Llenar select de registro de asistencia
             selectEmpleado.innerHTML = '<option value="">-- Selecciona un empleado --</option>';
@@ -137,12 +130,22 @@ async function loadEmpleados() {
                 option.textContent = `${emp.nombre} ${emp.apellido}`;
                 selectEmpleadoDescanso.appendChild(option);
             });
+            
+            // Llenar select de faltas (NUEVO)
+            selectEmpleadoFalta.innerHTML = '<option value="">-- Selecciona un empleado --</option>';
+            empleadosActivos.forEach(emp => {
+                const option = document.createElement('option');
+                option.value = emp.id;
+                option.textContent = `${emp.nombre} ${emp.apellido}`;
+                selectEmpleadoFalta.appendChild(option);
+            });
         }
     } catch (error) {
         console.error('Error al cargar empleados:', error);
         selectEmpleado.innerHTML = '<option value="">Error al cargar empleados</option>';
     }
 }
+
 /**
  * Registra asistencia de un empleado
  */
@@ -219,14 +222,14 @@ async function loadRegistrosHoy() {
 }
 
 /**
- * Programa un día de descanso
+ * Programa un día de descanso (CORREGIDO)
  */
 async function programarDiaDescanso() {
     const empleadoId = parseInt(selectEmpleadoDescanso.value);
     const fecha = fechaDescanso.value;
     const motivo = motivoDescanso.value;
     
-    if (!empleadoId || !fecha) {
+    if (!empleadoId || !fecha || !motivo) {
         showMessage('Completa todos los campos', 'error');
         return;
     }
@@ -240,12 +243,9 @@ async function programarDiaDescanso() {
     try {
         const response = await callAPI({
             action: 'programar_dia_descanso',
-            data: {
-                empleado_id: empleadoId,
-                fecha: fecha,
-                motivo: motivo,
-                aprobado_por: `${supervisorActual.nombre} ${supervisorActual.apellido}`
-            }
+            empleado_id: empleadoId,
+            fecha: fecha,
+            motivo: motivo
         });
         
         if (response.success) {
@@ -299,13 +299,19 @@ async function loadDiasDescanso() {
 }
 
 /**
- * Genera un reporte
+ * Registra una falta (NUEVO)
  */
-async function generarReporte() {
-    const fecha = fechaReporte.value;
+async function registrarFalta() {
+    const empleadoId = parseInt(selectEmpleadoFalta.value);
+    const fecha = fechaFalta.value;
+    const motivo = tipoFalta.value;
     
-    if (!fecha) {
-        showMessage('Selecciona una fecha', 'error');
+    if (!empleadoId || !fecha || !motivo) {
+        showMessage('Completa todos los campos', 'error');
+        return;
+    }
+    
+    if (!confirm('¿Registrar esta falta?')) {
         return;
     }
     
@@ -313,40 +319,59 @@ async function generarReporte() {
     
     try {
         const response = await callAPI({
-            action: 'obtener_todos_registros',
-            fecha: fecha
+            action: 'registrar_falta',
+            empleado_id: empleadoId,
+            fecha: fecha,
+            motivo: motivo
         });
         
-        if (response.success && response.registros) {
-            if (response.registros.length === 0) {
-                reporteResultados.innerHTML = '<p class="loading">No hay registros para esta fecha</p>';
-                toggleLoader(false);
-                return;
-            }
-            
-            reporteResultados.innerHTML = '';
-            response.registros.forEach(registro => {
-                const item = document.createElement('div');
-                item.className = `record-item ${registro.tipo}`;
-                item.innerHTML = `
-                    <div>
-                        <div class="record-type">${registro.nombre_completo}</div>
-                        <div style="font-size: 12px; color: #6b7280;">
-                            ${CONFIG.TIPOS_NOMBRES[registro.tipo]} - ${registro.servicio}
-                        </div>
-                    </div>
-                    <div class="record-time">${formatTime(registro.hora)}</div>
-                `;
-                reporteResultados.appendChild(item);
-            });
-            
-            showMessage('Reporte generado exitosamente', 'success');
+        if (response.success) {
+            showMessage(response.message, 'success');
+            fechaFalta.value = '';
+            await loadFaltasRegistradas();
+        } else {
+            showMessage(response.message, 'error');
         }
     } catch (error) {
         console.error('Error:', error);
-        showMessage('Error al generar reporte', 'error');
+        showMessage('Error al registrar falta', 'error');
     } finally {
         toggleLoader(false);
+    }
+}
+
+/**
+ * Carga las faltas registradas (NUEVO)
+ */
+async function loadFaltasRegistradas() {
+    try {
+        const response = await callAPI({
+            action: 'obtener_faltas'
+        });
+        
+        if (response.success && response.faltas) {
+            if (response.faltas.length === 0) {
+                faltasRegistradasList.innerHTML = '<p class="loading">No hay faltas registradas</p>';
+                return;
+            }
+            
+            faltasRegistradasList.innerHTML = '';
+            response.faltas.forEach(falta => {
+                const item = document.createElement('div');
+                item.className = 'record-item';
+                item.innerHTML = `
+                    <div>
+                        <div class="record-type">${falta.empleado_nombre}</div>
+                        <div style="font-size: 12px; color: #6b7280;">${falta.motivo} - ${falta.fecha}</div>
+                    </div>
+                    <div style="font-size: 12px; color: #6b7280;">Por: ${falta.registrada_por}</div>
+                `;
+                faltasRegistradasList.appendChild(item);
+            });
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        faltasRegistradasList.innerHTML = '<p class="loading">Error al cargar faltas</p>';
     }
 }
 
@@ -430,6 +455,8 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         // Cargar datos según el tab
         if (tabName === 'dias-descanso') {
             loadDiasDescanso();
+        } else if (tabName === 'faltas') {
+            loadFaltasRegistradas();
         } else if (tabName === 'mi-asistencia') {
             loadMisRegistros();
         }
@@ -447,7 +474,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Event listeners
     btnRegistrarAsistencia.addEventListener('click', registrarAsistenciaEmpleado);
     btnProgramarDescanso.addEventListener('click', programarDiaDescanso);
-    btnGenerarReporte.addEventListener('click', generarReporte);
+    btnRegistrarFalta.addEventListener('click', registrarFalta); // NUEVO
     
     btnMiEntrada.addEventListener('click', () => {
         if (confirm('¿Registrar tu ENTRADA?')) {
@@ -482,11 +509,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Auto-actualizar cada 30 segundos
     setInterval(loadRegistrosHoy, 30000);
-
-initInactivityTimeout();
-
     
+    initInactivityTimeout();
 });
-
-
-
