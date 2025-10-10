@@ -849,7 +849,6 @@ function cerrarFiltro() {
     document.getElementById('filteredResults').style.display = 'none';
 }
 
-/**
  * Carga servicios en el filtro
  */
 function cargarServiciosFiltro() {
@@ -858,11 +857,10 @@ function cargarServiciosFiltro() {
     
     if (serviciosData && serviciosData.length > 0) {
         serviciosData.filter(s => s.activo).forEach(srv => {
-            const option = document.createElement
-            const option = document.createElement('option');
-            option.value = srv.id;
-            option.textContent = srv.nombre;
-            filtroServicio.appendChild(option);
+            const opt = document.createElement('option');
+            opt.value = srv.id;
+            opt.textContent = srv.nombre;
+            filtroServicio.appendChild(opt);
         });
     }
     
@@ -992,6 +990,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     initInactivityTimeout();
 });
+
 
 
 
