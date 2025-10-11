@@ -1,6 +1,6 @@
 /**
  * config.js - Configuración del Frontend
- * URL del API ya configurada
+ * VERSIÓN OPTIMIZADA PARA PRODUCCIÓN
  */
 
 const CONFIG = {
@@ -23,83 +23,133 @@ const CONFIG = {
         'salida_almuerzo': 'Salida Almuerzo'
     },
     
-    // Keys para LocalStorage (guardar sesión del usuario)
+    // Keys para LocalStorage
     STORAGE_KEYS: {
         EMPLEADO: 'empleado_data'
-    }
+    },
+    
+    // ✨ NUEVO: Configuración de red
+    NETWORK: {
+        TIMEOUT: 30000,        // 30 segundos timeout
+        MAX_RETRIES: 2,        // Reintentar 2 veces si falla
+        RETRY_DELAY: 1000      // 1 segundo entre reintentos
+    },
+    
+    // ✨ NUEVO: Modo debug (solo para desarrollo)
+    DEBUG: false  // Cambiar a true solo para debugging
 };
 
 /**
- * Función para hacer peticiones al API usando Google Apps Script
+ * Función para hacer peticiones al API con retry logic
  * @param {Object} data - Datos a enviar
+ * @param {number} retryCount - Contador de reintentos (interno)
  * @returns {Promise<Object>} Respuesta del servidor
  */
-async function callAPI(data) {
+async function callAPI(data, retryCount = 0) {
     try {
-        console.log('Enviando petición al API:', data);
-        console.log('URL del API:', CONFIG.API_URL);
+        // Debug logs solo si está activado
+        if (CONFIG.DEBUG) {
+            console.log('[API] Request:', data);
+        }
         
-        // Para Google Apps Script, usamos fetch con redirect: 'follow'
-        const response = await fetch(CONFIG.API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'text/plain'
-            },
-            body: JSON.stringify(data),
-            redirect: 'follow'
-        });
+        // Controller para timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), CONFIG.NETWORK.TIMEOUT);
         
-        console.log('Respuesta recibida, status:', response.status);
-        
-        // Leer respuesta como texto
-        const textResponse = await response.text();
-        console.log('Respuesta del servidor:', textResponse);
-        
-        // Parsear JSON
         try {
+            const response = await fetch(CONFIG.API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'text/plain'
+                },
+                body: JSON.stringify(data),
+                redirect: 'follow',
+                signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            
+            // Leer respuesta como texto
+            const textResponse = await response.text();
+            
+            // Parsear JSON
             const result = JSON.parse(textResponse);
-            console.log('JSON parseado:', result);
+            
+            if (CONFIG.DEBUG) {
+                console.log('[API] Response:', result);
+            }
+            
             return result;
-        } catch (parseError) {
-            console.error('Error al parsear JSON:', parseError);
-            console.error('Texto recibido:', textResponse);
-            return {
-                success: false,
-                message: 'Error al procesar respuesta del servidor'
-            };
+            
+        } catch (fetchError) {
+            clearTimeout(timeoutId);
+            
+            // Si es timeout o error de red Y aún tenemos reintentos
+            if (retryCount < CONFIG.NETWORK.MAX_RETRIES) {
+                if (CONFIG.DEBUG) {
+                    console.log(`[API] Retry ${retryCount + 1}/${CONFIG.NETWORK.MAX_RETRIES}`);
+                }
+                
+                // Esperar antes de reintentar
+                await sleep(CONFIG.NETWORK.RETRY_DELAY);
+                
+                // Reintentar recursivamente
+                return callAPI(data, retryCount + 1);
+            }
+            
+            // Si ya no hay más reintentos, lanzar el error
+            throw fetchError;
         }
         
     } catch (error) {
-        console.error('Error en callAPI:', error);
+        console.error('[API] Error:', error.message);
+        
+        // Mensajes de error más amigables
+        let userMessage = 'Error de conexión';
+        
+        if (error.name === 'AbortError') {
+            userMessage = 'La conexión tardó demasiado. Verifica tu internet.';
+        } else if (error instanceof SyntaxError) {
+            userMessage = 'Error al procesar la respuesta del servidor';
+        } else if (!navigator.onLine) {
+            userMessage = 'Sin conexión a internet. Verifica tu conexión.';
+        }
+        
         return {
             success: false,
-            message: 'Error de conexión: ' + error.message
+            message: userMessage,
+            error: CONFIG.DEBUG ? error.message : undefined
         };
     }
 }
 
 /**
+ * Helper: Sleep/delay
+ */
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
  * Guarda los datos del empleado en el navegador
- * @param {Object} empleadoData - Datos del empleado
  */
 function saveEmpleadoData(empleadoData) {
     try {
         localStorage.setItem(CONFIG.STORAGE_KEYS.EMPLEADO, JSON.stringify(empleadoData));
     } catch (error) {
-        console.error('Error al guardar datos:', error);
+        console.error('[Storage] Error al guardar:', error.message);
     }
 }
 
 /**
  * Obtiene los datos del empleado guardados
- * @returns {Object|null} Datos del empleado o null
  */
 function getEmpleadoData() {
     try {
         const data = localStorage.getItem(CONFIG.STORAGE_KEYS.EMPLEADO);
         return data ? JSON.parse(data) : null;
     } catch (error) {
-        console.error('Error al obtener datos:', error);
+        console.error('[Storage] Error al leer:', error.message);
         return null;
     }
 }
@@ -111,77 +161,77 @@ function clearEmpleadoData() {
     try {
         localStorage.removeItem(CONFIG.STORAGE_KEYS.EMPLEADO);
     } catch (error) {
-        console.error('Error al limpiar datos:', error);
+        console.error('[Storage] Error al limpiar:', error.message);
     }
 }
 
 /**
  * Formatea una fecha en formato legible
- * @param {string} fecha - Fecha en formato YYYY-MM-DD
- * @returns {string} Fecha formateada
+ * OPTIMIZADO: Cachea el formatter
  */
+const dateFormatter = new Intl.DateTimeFormat('es-MX', { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric',
+    weekday: 'long'
+});
+
 function formatDate(fecha) {
-    const options = { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric',
-        weekday: 'long'
-    };
     const date = new Date(fecha + 'T00:00:00');
-    return date.toLocaleDateString('es-MX', options);
+    return dateFormatter.format(date);
 }
 
 /**
  * Formatea una hora en formato legible
- * @param {string} hora - Hora en formato HH:MM:SS o ISO timestamp
- * @returns {string} Hora formateada HH:MM
+ * OPTIMIZADO: Versión más eficiente
  */
 function formatTime(hora) {
     if (!hora) return '';
     
-    // Si es un timestamp ISO (contiene T o Z)
+    // Si es un timestamp ISO
     if (typeof hora === 'string' && (hora.includes('T') || hora.includes('Z'))) {
         const date = new Date(hora);
-        const hours = String(date.getUTCHours()).padStart(2, '0');
-        const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-        return `${hours}:${minutes}`;
+        return `${String(date.getUTCHours()).padStart(2, '0')}:${String(date.getUTCMinutes()).padStart(2, '0')}`;
     }
     
-    // Si ya es HH:MM:SS, extraer solo HH:MM
+    // Si ya es HH:MM:SS o HH:MM
     const parts = hora.toString().split(':');
-    return `${parts[0]}:${parts[1]}`;
+    return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`;
 }
 
 /**
  * Obtiene la fecha actual en formato YYYY-MM-DD
- * @returns {string} Fecha actual
+ * OPTIMIZADO: Versión más simple
  */
 function getCurrentDate() {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    return new Date().toISOString().split('T')[0];
 }
 
 /**
  * Sistema de timeout de sesión por inactividad
+ * OPTIMIZADO: Menos eventos, mejor rendimiento
  */
-const SESSION_TIMEOUT = 10 * 60 * 1000; // 10 minutos en milisegundos
+const SESSION_TIMEOUT = 10 * 60 * 1000; // 10 minutos
 let inactivityTimer;
+let lastActivity = Date.now();
 
 /**
  * Reinicia el temporizador de inactividad
+ * OPTIMIZADO: Throttled - solo resetea si pasó 1 segundo desde última actividad
  */
 function resetInactivityTimer() {
-    // Limpiar el timer anterior
+    const now = Date.now();
+    
+    // Throttle: solo resetear si pasó al menos 1 segundo
+    if (now - lastActivity < 1000) return;
+    
+    lastActivity = now;
+    
     if (inactivityTimer) {
         clearTimeout(inactivityTimer);
     }
     
-    // Crear nuevo timer
     inactivityTimer = setTimeout(() => {
-        // Cerrar sesión automáticamente
         clearEmpleadoData();
         alert('Tu sesión ha expirado por inactividad. Por favor, inicia sesión nuevamente.');
         window.location.href = 'index.html';
@@ -189,21 +239,45 @@ function resetInactivityTimer() {
 }
 
 /**
- * Inicializar el sistema de timeout (llamar en cada dashboard)
+ * Inicializar el sistema de timeout
+ * OPTIMIZADO: Menos eventos, mejor para móviles
  */
 function initInactivityTimeout() {
-    // Eventos que resetean el timer (cualquier actividad del usuario)
-    const eventos = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    // Solo eventos importantes (no mousemove que es muy frecuente)
+    const eventos = ['mousedown', 'keypress', 'touchstart', 'click', 'scroll'];
     
     eventos.forEach(evento => {
-        document.addEventListener(evento, resetInactivityTimer, true);
+        document.addEventListener(evento, resetInactivityTimer, { passive: true });
     });
     
-    // Iniciar el primer timer
+    // Detectar cambios de visibilidad (cuando cambia de tab/app)
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            resetInactivityTimer();
+        }
+    });
+    
     resetInactivityTimer();
 }
 
+/**
+ * ✨ NUEVA: Detectar conexión offline/online
+ */
+function initNetworkMonitoring() {
+    window.addEventListener('online', () => {
+        if (CONFIG.DEBUG) {
+            console.log('[Network] Conexión restaurada');
+        }
+        // Opcional: Mostrar notificación al usuario
+    });
+    
+    window.addEventListener('offline', () => {
+        console.warn('[Network] Sin conexión a internet');
+        // Opcional: Mostrar notificación al usuario
+    });
+}
 
-
-
-
+// Inicializar monitoreo de red
+if (typeof window !== 'undefined') {
+    initNetworkMonitoring();
+}
