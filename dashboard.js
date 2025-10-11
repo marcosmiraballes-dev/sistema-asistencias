@@ -54,16 +54,16 @@ function checkSession() {
     empleadoActual = getEmpleadoData();
     
     if (!empleadoActual?.id) {
-        window.location.href = 'index.html';
+        window.location.href = 'index.html' + window.location.search; // ✅ AGREGADO
         return false;
     }
     
     // NUEVO: Redirigir si el rol no es empleado
     if (empleadoActual.rol === 'admin') {
-        window.location.href = 'admin.html';
+        window.location.href = 'admin.html' + window.location.search; // ✅ AGREGADO
         return false;
     } else if (empleadoActual.rol === 'supervisor') {
-        window.location.href = 'supervisor.html';
+        window.location.href = 'supervisor.html' + window.location.search; // ✅ AGREGADO
         return false;
     }
     
@@ -286,3 +286,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     initInactivityTimeout();
 });
+
