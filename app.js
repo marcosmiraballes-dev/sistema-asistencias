@@ -1,5 +1,6 @@
 /**
  * app.js - Lógica de la página de login
+ * VERSIÓN OPTIMIZADA
  */
 
 // Elementos del DOM
@@ -12,14 +13,11 @@ const loader = document.getElementById('loader');
 
 /**
  * Muestra un mensaje en la interfaz
- * @param {string} message - Mensaje a mostrar
- * @param {string} type - Tipo de mensaje: 'success', 'error', 'warning'
  */
 function showMessage(message, type = 'error') {
     messageDiv.textContent = message;
     messageDiv.className = `message ${type} show`;
     
-    // Auto-ocultar después de 5 segundos
     setTimeout(() => {
         messageDiv.classList.remove('show');
     }, 5000);
@@ -27,23 +25,17 @@ function showMessage(message, type = 'error') {
 
 /**
  * Muestra u oculta el loader
- * @param {boolean} show - true para mostrar, false para ocultar
+ * OPTIMIZADO: Más eficiente
  */
 function toggleLoader(show) {
-    if (show) {
-        loader.style.display = 'block';
-        loginBtn.disabled = true;
-        loginBtn.textContent = 'Verificando...';
-    } else {
-        loader.style.display = 'none';
-        loginBtn.disabled = false;
-        loginBtn.textContent = 'Iniciar Sesión';
-    }
+    loader.style.display = show ? 'block' : 'none';
+    loginBtn.disabled = show;
+    loginBtn.textContent = show ? 'Verificando...' : 'Iniciar Sesión';
 }
 
 /**
  * Valida el formulario antes de enviar
- * @returns {boolean} true si el formulario es válido
+ * OPTIMIZADO: Validación más rápida
  */
 function validateForm() {
     const usuario = usuarioInput.value.trim();
@@ -55,20 +47,9 @@ function validateForm() {
         return false;
     }
     
-    if (!pin) {
-        showMessage('Por favor ingresa tu PIN', 'error');
-        pinInput.focus();
-        return false;
-    }
-    
-    if (pin.length !== 4) {
-        showMessage('El PIN debe ser de 4 dígitos', 'error');
-        pinInput.focus();
-        return false;
-    }
-    
-    if (!/^\d{4}$/.test(pin)) {
-        showMessage('El PIN debe contener solo números', 'error');
+    // Validación combinada del PIN (más eficiente)
+    if (!pin || pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+        showMessage('El PIN debe ser de 4 dígitos numéricos', 'error');
         pinInput.focus();
         return false;
     }
@@ -77,111 +58,134 @@ function validateForm() {
 }
 
 /**
+ * Redirige al dashboard correcto según el rol
+ * OPTIMIZADO: Función centralizada
+ */
+function redirectToDashboard(rol) {
+    const dashboards = {
+        'admin': 'admin.html',
+        'supervisor': 'supervisor.html',
+        'empleado': 'dashboard.html'
+    };
+    
+    window.location.href = dashboards[rol] || 'dashboard.html';
+}
+
+/**
  * Maneja el submit del formulario de login
+ * OPTIMIZADO: Mejor manejo de errores y UX
  */
 async function handleLogin(e) {
     e.preventDefault();
     
-    // Validar formulario
-    if (!validateForm()) {
-        return;
-    }
+    if (!validateForm()) return;
     
-    // Mostrar loader
     toggleLoader(true);
-    
-    // Ocultar mensaje anterior
     messageDiv.classList.remove('show');
     
-    // Obtener valores
     const usuario = usuarioInput.value.trim();
     const pin = pinInput.value.trim();
     
     try {
-        // Llamar al API
         const response = await callAPI({
             action: 'login',
             usuario: usuario,
             pin: pin
         });
         
-        // Procesar respuesta
-        if (response.success) {
+        if (response.success && response.empleado) {
             // Login exitoso
-            showMessage('¡Login exitoso! Redirigiendo...', 'success');
+            showMessage('¡Login exitoso!', 'success');
             
             // Guardar datos del empleado
             saveEmpleadoData(response.empleado);
             
-            // Redirigir según el rol después de 1 segundo
-            setTimeout(() => {
-                const rol = response.empleado.rol;
-                
-                if (rol === 'admin') {
-                    window.location.href = 'admin.html';
-                } else if (rol === 'supervisor') {
-                    window.location.href = 'supervisor.html';
-                } else {
-                    window.location.href = 'dashboard.html';
-                }
-            }, 1000);
+            // Redirigir inmediatamente (sin timeout innecesario)
+            redirectToDashboard(response.empleado.rol);
             
         } else {
             // Login fallido
-            showMessage(response.message || 'Error al iniciar sesión', 'error');
-            toggleLoader(false);
+            showMessage(response.message || 'Usuario o PIN incorrectos', 'error');
+            
+            // Limpiar solo PIN y enfocar para reintentar
             pinInput.value = '';
             pinInput.focus();
+            
+            toggleLoader(false);
         }
         
     } catch (error) {
-        console.error('Error en login:', error);
-        showMessage('Error de conexión. Verifica tu internet e intenta nuevamente.', 'error');
+        // Error de red/conexión
+        if (CONFIG.DEBUG) {
+            console.error('[Login] Error:', error);
+        }
+        
+        showMessage(
+            !navigator.onLine 
+                ? 'Sin conexión a internet. Verifica tu conexión.' 
+                : 'Error de conexión. Intenta nuevamente.',
+            'error'
+        );
+        
         toggleLoader(false);
     }
 }
 
 /**
  * Verifica si ya hay una sesión activa
+ * OPTIMIZADO: Redirige al dashboard correcto según rol
  */
 function checkExistingSession() {
     const empleadoData = getEmpleadoData();
     
-    if (empleadoData && empleadoData.id) {
-        // Ya hay una sesión, redirigir al dashboard
-        window.location.href = 'dashboard.html';
+    if (empleadoData?.id && empleadoData?.rol) {
+        // Ya hay sesión válida, redirigir al dashboard correcto
+        redirectToDashboard(empleadoData.rol);
     }
 }
 
 /**
  * Inicialización cuando carga la página
+ * OPTIMIZADO: Event listeners más eficientes
  */
 document.addEventListener('DOMContentLoaded', () => {
-    // Verificar sesión existente
+    // Verificar sesión existente primero
     checkExistingSession();
     
     // Event listener para el formulario
     loginForm.addEventListener('submit', handleLogin);
     
-    // Focus automático en el campo de usuario
+    // Focus automático
     usuarioInput.focus();
     
-    // Validación en tiempo real del PIN (solo números)
+    // Validación en tiempo real del PIN
+    // OPTIMIZADO: Maneja paste también
     pinInput.addEventListener('input', (e) => {
-        // Remover cualquier carácter que no sea número
-        e.target.value = e.target.value.replace(/\D/g, '');
-        
-        // Limitar a 4 dígitos
-        if (e.target.value.length > 4) {
-            e.target.value = e.target.value.slice(0, 4);
-        }
+        // Solo números, máximo 4 dígitos
+        e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);
     });
     
-    // Al presionar Enter en el campo usuario, pasar al PIN
+    // Prevenir paste de texto no numérico
+    pinInput.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+        const numbers = pastedText.replace(/\D/g, '').slice(0, 4);
+        pinInput.value = numbers;
+    });
+    
+    // Enter en usuario → pasar a PIN
     usuarioInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
             pinInput.focus();
+        }
+    });
+    
+    // NUEVO: Enter en PIN → submit automático (mejor UX)
+    pinInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && pinInput.value.length === 4) {
+            e.preventDefault();
+            loginForm.dispatchEvent(new Event('submit'));
         }
     });
 });
