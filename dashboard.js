@@ -1,5 +1,6 @@
 /**
  * dashboard.js - Lógica del dashboard del empleado
+ * VERSIÓN OPTIMIZADA
  */
 
 // Elementos del DOM
@@ -18,19 +19,21 @@ const btnSalida = document.getElementById('btnSalida');
 const btnSalidaAlmuerzo = document.getElementById('btnSalidaAlmuerzo');
 const btnEntradaAlmuerzo = document.getElementById('btnEntradaAlmuerzo');
 
-// Variable global para almacenar datos del empleado
+// Variable global
 let empleadoActual = null;
+
+// NUEVO: Caché de registros del día
+let registrosCache = null;
+let ultimaActualizacion = 0;
+const CACHE_DURATION = 2 * 60 * 1000; // 2 minutos
 
 /**
  * Muestra un mensaje en el dashboard
- * @param {string} message - Mensaje a mostrar
- * @param {string} type - Tipo de mensaje
  */
 function showDashboardMessage(message, type = 'error') {
     dashboardMessage.textContent = message;
     dashboardMessage.className = `message ${type} show`;
     
-    // Auto-ocultar después de 5 segundos
     setTimeout(() => {
         dashboardMessage.classList.remove('show');
     }, 5000);
@@ -38,21 +41,29 @@ function showDashboardMessage(message, type = 'error') {
 
 /**
  * Muestra u oculta el loader del dashboard
- * @param {boolean} show - true para mostrar
  */
 function toggleDashboardLoader(show) {
     dashboardLoader.style.display = show ? 'block' : 'none';
 }
 
 /**
- * Verifica que haya una sesión activa
+ * Verifica que haya una sesión activa y rol correcto
+ * OPTIMIZADO: Valida rol también
  */
 function checkSession() {
     empleadoActual = getEmpleadoData();
     
-    if (!empleadoActual || !empleadoActual.id) {
-        // No hay sesión, redirigir al login
+    if (!empleadoActual?.id) {
         window.location.href = 'index.html';
+        return false;
+    }
+    
+    // NUEVO: Redirigir si el rol no es empleado
+    if (empleadoActual.rol === 'admin') {
+        window.location.href = 'admin.html';
+        return false;
+    } else if (empleadoActual.rol === 'supervisor') {
+        window.location.href = 'supervisor.html';
         return false;
     }
     
@@ -61,39 +72,33 @@ function checkSession() {
 
 /**
  * Carga la información del empleado en la interfaz
+ * OPTIMIZADO: Valores por defecto más limpios
  */
 function loadEmployeeInfo() {
     if (!empleadoActual) return;
     
-    // Nombre completo
     userName.textContent = `${empleadoActual.nombre} ${empleadoActual.apellido}`;
-    
-    // Servicio
     userService.textContent = empleadoActual.servicio_nombre || 'Sin servicio';
-    
-    // Horario
-    const horaEntrada = empleadoActual.hora_entrada || '08:00';
-    const horaSalida = empleadoActual.hora_salida || '17:00';
-    userSchedule.textContent = `${horaEntrada} - ${horaSalida}`;
-    
-    // Fecha actual
+    userSchedule.textContent = `${empleadoActual.hora_entrada || '08:00'} - ${empleadoActual.hora_salida || '17:00'}`;
     currentDate.textContent = formatDate(getCurrentDate());
 }
 
 /**
  * Registra una asistencia
- * @param {string} tipo - Tipo de registro
+ * OPTIMIZADO: Solo deshabilita el botón presionado
  */
-async function registrarAsistencia(tipo) {
+async function registrarAsistencia(tipo, button) {
     if (!empleadoActual) return;
     
-    // Deshabilitar todos los botones
-    disableAllButtons(true);
+    // Solo deshabilitar el botón específico
+    button.disabled = true;
+    const textoOriginal = button.textContent;
+    button.textContent = 'Registrando...';
+    
     toggleDashboardLoader(true);
     dashboardMessage.classList.remove('show');
     
     try {
-        // Llamar al API
         const response = await callAPI({
             action: 'registrar_asistencia',
             empleado_id: empleadoActual.id,
@@ -101,54 +106,53 @@ async function registrarAsistencia(tipo) {
         });
         
         if (response.success) {
-            // Registro exitoso
-            let mensaje = response.message;
-            
-            // Si llegó tarde, mostrar advertencia
-            if (response.tarde) {
-                showDashboardMessage(mensaje, 'warning');
-            } else {
-                showDashboardMessage(mensaje, 'success');
+            // Vibración táctil en móviles (si está disponible)
+            if (navigator.vibrate) {
+                navigator.vibrate(response.tarde ? [100, 50, 100] : 100);
             }
             
-            // Recargar registros
+            showDashboardMessage(
+                response.message,
+                response.tarde ? 'warning' : 'success'
+            );
+            
+            // Invalidar caché y recargar
+            registrosCache = null;
             await loadTodayRecords();
             
         } else {
-            // Error al registrar
             showDashboardMessage(response.message, 'error');
         }
         
     } catch (error) {
-        console.error('Error al registrar asistencia:', error);
-        showDashboardMessage('Error de conexión al registrar asistencia', 'error');
+        if (CONFIG.DEBUG) {
+            console.error('[Dashboard] Error registro:', error);
+        }
+        showDashboardMessage('Error de conexión al registrar', 'error');
     } finally {
         toggleDashboardLoader(false);
-        disableAllButtons(false);
+        button.disabled = false;
+        button.textContent = textoOriginal;
     }
 }
 
 /**
- * Deshabilita o habilita todos los botones de asistencia
- * @param {boolean} disable - true para deshabilitar
- */
-function disableAllButtons(disable) {
-    btnEntrada.disabled = disable;
-    btnSalida.disabled = disable;
-    btnSalidaAlmuerzo.disabled = disable;
-    btnEntradaAlmuerzo.disabled = disable;
-}
-
-/**
  * Carga los registros del día actual
+ * OPTIMIZADO: Con caché para evitar recargas innecesarias
  */
-async function loadTodayRecords() {
+async function loadTodayRecords(forceRefresh = false) {
     if (!empleadoActual) return;
+    
+    // Usar caché si está vigente y no es refresh forzado
+    const now = Date.now();
+    if (!forceRefresh && registrosCache && (now - ultimaActualizacion) < CACHE_DURATION) {
+        renderRegistros(registrosCache);
+        return;
+    }
     
     try {
         recordsList.innerHTML = '<p class="loading">Cargando registros...</p>';
         
-        // Llamar al API
         const response = await callAPI({
             action: 'obtener_registros_hoy',
             empleado_id: empleadoActual.id
@@ -157,98 +161,128 @@ async function loadTodayRecords() {
         if (response.success) {
             const registros = response.registros || [];
             
-            if (registros.length === 0) {
-                recordsList.innerHTML = '<p class="loading">No hay registros para hoy</p>';
-                return;
-            }
+            // Actualizar caché
+            registrosCache = registros;
+            ultimaActualizacion = now;
             
-            // Mostrar registros
-            recordsList.innerHTML = '';
-            
-            registros.forEach(registro => {
-                const recordItem = document.createElement('div');
-                recordItem.className = `record-item ${registro.tipo}`;
-                
-                const tipoNombre = CONFIG.TIPOS_NOMBRES[registro.tipo] || registro.tipo;
-                const hora = formatTime(registro.hora);
-                
-                recordItem.innerHTML = `
-                    <div>
-                        <div class="record-type">${tipoNombre}</div>
-                        ${registro.tarde ? '<div class="record-late">⚠️ Llegada tarde</div>' : ''}
-                    </div>
-                    <div class="record-time">${hora}</div>
-                `;
-                
-                recordsList.appendChild(recordItem);
-            });
-            
+            renderRegistros(registros);
         } else {
             recordsList.innerHTML = '<p class="loading">Error al cargar registros</p>';
         }
         
     } catch (error) {
-        console.error('Error al cargar registros:', error);
+        if (CONFIG.DEBUG) {
+            console.error('[Dashboard] Error carga registros:', error);
+        }
         recordsList.innerHTML = '<p class="loading">Error de conexión</p>';
     }
+}
+
+/**
+ * NUEVA: Renderiza los registros en el DOM
+ * OPTIMIZADO: Lógica separada para mejor rendimiento
+ */
+function renderRegistros(registros) {
+    if (registros.length === 0) {
+        recordsList.innerHTML = '<p class="loading">No hay registros para hoy</p>';
+        return;
+    }
+    
+    // Usar DocumentFragment para mejor rendimiento
+    const fragment = document.createDocumentFragment();
+    
+    registros.forEach(registro => {
+        const recordItem = document.createElement('div');
+        recordItem.className = `record-item ${registro.tipo}`;
+        
+        const tipoNombre = CONFIG.TIPOS_NOMBRES[registro.tipo] || registro.tipo;
+        const hora = formatTime(registro.hora);
+        
+        recordItem.innerHTML = `
+            <div>
+                <div class="record-type">${tipoNombre}</div>
+                ${registro.tarde ? '<div class="record-late">⚠️ Llegada tarde</div>' : ''}
+            </div>
+            <div class="record-time">${hora}</div>
+        `;
+        
+        fragment.appendChild(recordItem);
+    });
+    
+    recordsList.innerHTML = '';
+    recordsList.appendChild(fragment);
 }
 
 /**
  * Maneja el logout
  */
 function handleLogout() {
-    if (confirm('¿Estás seguro que deseas cerrar sesión?')) {
+    if (confirm('¿Cerrar sesión?')) {
         clearEmpleadoData();
         window.location.href = 'index.html';
     }
 }
 
 /**
+ * NUEVA: Registro rápido sin confirmación
+ * OPTIMIZADO: Para usuarios que registran frecuentemente
+ */
+function setupQuickRegistration(button, tipo) {
+    let clickCount = 0;
+    let clickTimer = null;
+    
+    button.addEventListener('click', () => {
+        clickCount++;
+        
+        // Doble click = registro rápido sin confirmación
+        if (clickCount === 2) {
+            clearTimeout(clickTimer);
+            clickCount = 0;
+            registrarAsistencia(tipo, button);
+            return;
+        }
+        
+        // Primer click = mostrar confirmación
+        if (clickCount === 1) {
+            clickTimer = setTimeout(() => {
+                if (confirm(`¿Registrar ${CONFIG.TIPOS_NOMBRES[tipo].toUpperCase()}?`)) {
+                    registrarAsistencia(tipo, button);
+                }
+                clickCount = 0;
+            }, 300);
+        }
+    });
+}
+
+/**
  * Inicialización cuando carga la página
+ * OPTIMIZADO: Event listeners más eficientes
  */
 document.addEventListener('DOMContentLoaded', async () => {
-    // Verificar sesión
-    if (!checkSession()) {
-        return;
-    }
+    if (!checkSession()) return;
     
-    // Cargar información del empleado
     loadEmployeeInfo();
-    
-    // Cargar registros de hoy
     await loadTodayRecords();
     
-    // Event listeners para botones de asistencia
-    btnEntrada.addEventListener('click', () => {
-        if (confirm('¿Registrar ENTRADA?')) {
-            registrarAsistencia(CONFIG.TIPOS_REGISTRO.ENTRADA);
-        }
-    });
+    // OPTIMIZADO: Registro rápido con doble click
+    setupQuickRegistration(btnEntrada, CONFIG.TIPOS_REGISTRO.ENTRADA);
+    setupQuickRegistration(btnSalida, CONFIG.TIPOS_REGISTRO.SALIDA);
+    setupQuickRegistration(btnSalidaAlmuerzo, CONFIG.TIPOS_REGISTRO.SALIDA_ALMUERZO);
+    setupQuickRegistration(btnEntradaAlmuerzo, CONFIG.TIPOS_REGISTRO.ENTRADA_ALMUERZO);
     
-    btnSalida.addEventListener('click', () => {
-        if (confirm('¿Registrar SALIDA?')) {
-            registrarAsistencia(CONFIG.TIPOS_REGISTRO.SALIDA);
-        }
-    });
-    
-    btnSalidaAlmuerzo.addEventListener('click', () => {
-        if (confirm('¿Registrar SALIDA A ALMUERZO?')) {
-            registrarAsistencia(CONFIG.TIPOS_REGISTRO.SALIDA_ALMUERZO);
-        }
-    });
-    
-    btnEntradaAlmuerzo.addEventListener('click', () => {
-        if (confirm('¿Registrar ENTRADA DE ALMUERZO?')) {
-            registrarAsistencia(CONFIG.TIPOS_REGISTRO.ENTRADA_ALMUERZO);
-        }
-    });
-    
-    // Event listener para logout
     logoutBtn.addEventListener('click', handleLogout);
     
-    // Auto-actualizar registros cada 30 segundos
-    setInterval(loadTodayRecords, 30000);
-
+    // OPTIMIZADO: Auto-refresh más inteligente
+    // Solo actualiza cada 5 minutos (empleados registran max 4 veces al día)
+    // Invalida caché después de cada registro de todas formas
+    setInterval(() => loadTodayRecords(true), 5 * 60 * 1000);
+    
+    // NUEVO: Actualizar cuando la página vuelve a estar visible
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            loadTodayRecords(true);
+        }
+    });
+    
     initInactivityTimeout();
-
 });
