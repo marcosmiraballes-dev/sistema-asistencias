@@ -1,11 +1,18 @@
 /**
  * supervisor.js - Lógica del dashboard del supervisor
- * VERSIÓN COMPLETA CON DEBUG
+ * VERSIÓN OPTIMIZADA - PRODUCCIÓN
  */
 
-// Variable global para almacenar datos
+// Variables globales
 let supervisorActual = null;
 let empleadosActivos = [];
+
+// Caché
+let empleadosCache = null;
+let registrosCache = null;
+let ultimaActualizacionEmpleados = 0;
+let ultimaActualizacionRegistros = 0;
+const CACHE_DURATION = 3 * 60 * 1000; // 3 minutos
 
 // Elementos del DOM
 const userName = document.getElementById('userName');
@@ -65,7 +72,7 @@ function toggleLoader(show) {
 function checkSession() {
     supervisorActual = getEmpleadoData();
     
-    if (!supervisorActual || !supervisorActual.id) {
+    if (!supervisorActual?.id) {
         window.location.href = 'index.html';
         return false;
     }
@@ -88,62 +95,63 @@ function loadSupervisorInfo() {
     
     userName.textContent = `${supervisorActual.nombre} ${supervisorActual.apellido}`;
     miServicio.textContent = supervisorActual.servicio_nombre || 'Sin servicio';
-    
-    // Formatear horas correctamente
-    const horaEntrada = formatTime(supervisorActual.hora_entrada);
-    const horaSalida = formatTime(supervisorActual.hora_salida);
-    miHorario.textContent = `${horaEntrada} - ${horaSalida}`;
-    
+    miHorario.textContent = `${formatTime(supervisorActual.hora_entrada)} - ${formatTime(supervisorActual.hora_salida)}`;
     fechaActual.textContent = formatDate(getCurrentDate());
 }
 
 /**
- * Carga la lista de empleados activos (filtrados por servicio del supervisor)
+ * Carga la lista de empleados activos
+ * OPTIMIZADO: Con caché
  */
-async function loadEmpleados() {
+async function loadEmpleados(forceRefresh = false) {
+    const now = Date.now();
+    
+    // Usar caché si es válido
+    if (!forceRefresh && empleadosCache && (now - ultimaActualizacionEmpleados) < CACHE_DURATION) {
+        empleadosActivos = empleadosCache;
+        populateEmployeeSelects();
+        return;
+    }
+    
     try {
-        const requestData = {
+        const response = await callAPI({
             action: 'listar_empleados',
             solo_activos: true,
             servicio_id: supervisorActual.servicio_id
-        };
-        
-        const response = await callAPI(requestData);
+        });
         
         if (response.success && response.empleados) {
             empleadosActivos = response.empleados;
+            empleadosCache = empleadosActivos;
+            ultimaActualizacionEmpleados = now;
             
-            // Llenar select de registro de asistencia
-            selectEmpleado.innerHTML = '<option value="">-- Selecciona un empleado --</option>';
-            empleadosActivos.forEach(emp => {
-                const option = document.createElement('option');
-                option.value = emp.id;
-                option.textContent = `${emp.nombre} ${emp.apellido}`;
-                selectEmpleado.appendChild(option);
-            });
-            
-            // Llenar select de días de descanso
-            selectEmpleadoDescanso.innerHTML = '<option value="">-- Selecciona un empleado --</option>';
-            empleadosActivos.forEach(emp => {
-                const option = document.createElement('option');
-                option.value = emp.id;
-                option.textContent = `${emp.nombre} ${emp.apellido}`;
-                selectEmpleadoDescanso.appendChild(option);
-            });
-            
-            // Llenar select de faltas
-            selectEmpleadoFalta.innerHTML = '<option value="">-- Selecciona un empleado --</option>';
-            empleadosActivos.forEach(emp => {
-                const option = document.createElement('option');
-                option.value = emp.id;
-                option.textContent = `${emp.nombre} ${emp.apellido}`;
-                selectEmpleadoFalta.appendChild(option);
-            });
+            populateEmployeeSelects();
         }
     } catch (error) {
-        console.error('Error al cargar empleados:', error);
+        if (CONFIG.DEBUG) {
+            console.error('[Supervisor] Error cargar empleados:', error);
+        }
         selectEmpleado.innerHTML = '<option value="">Error al cargar empleados</option>';
     }
+}
+
+/**
+ * NUEVA: Llena todos los selects de empleados
+ * OPTIMIZADO: Una sola función en lugar de código duplicado
+ */
+function populateEmployeeSelects() {
+    const selects = [selectEmpleado, selectEmpleadoDescanso, selectEmpleadoFalta];
+    
+    selects.forEach(select => {
+        select.innerHTML = '<option value="">-- Selecciona un empleado --</option>';
+        
+        empleadosActivos.forEach(emp => {
+            const option = document.createElement('option');
+            option.value = emp.id;
+            option.textContent = `${emp.nombre} ${emp.apellido}`;
+            select.appendChild(option);
+        });
+    });
 }
 
 /**
@@ -158,9 +166,7 @@ async function registrarAsistenciaEmpleado() {
         return;
     }
     
-    if (!confirm('¿Registrar asistencia para este empleado?')) {
-        return;
-    }
+    if (!confirm('¿Registrar asistencia para este empleado?')) return;
     
     toggleLoader(true);
     
@@ -173,12 +179,15 @@ async function registrarAsistenciaEmpleado() {
         
         if (response.success) {
             showMessage(response.message, response.tarde ? 'warning' : 'success');
+            registrosCache = null; // Invalidar caché
             await loadRegistrosHoy();
         } else {
             showMessage(response.message, 'error');
         }
     } catch (error) {
-        console.error('Error:', error);
+        if (CONFIG.DEBUG) {
+            console.error('[Supervisor] Error registro:', error);
+        }
         showMessage('Error al registrar asistencia', 'error');
     } finally {
         toggleLoader(false);
@@ -187,92 +196,106 @@ async function registrarAsistenciaEmpleado() {
 
 /**
  * Carga los registros de hoy
+ * OPTIMIZADO: Con caché y DocumentFragment
  */
-async function loadRegistrosHoy() {
+async function loadRegistrosHoy(forceRefresh = false) {
+    const now = Date.now();
+    
+    // Usar caché si es válido
+    if (!forceRefresh && registrosCache && (now - ultimaActualizacionRegistros) < CACHE_DURATION) {
+        renderRegistros(registrosCache);
+        return;
+    }
+    
     try {
+        registrosHoyList.innerHTML = '<p class="loading">Cargando registros...</p>';
+        
         const response = await callAPI({
             action: 'obtener_todos_registros',
             fecha: getCurrentDate()
         });
         
         if (response.success && response.registros) {
-            if (response.registros.length === 0) {
-                registrosHoyList.innerHTML = '<p class="loading">No hay registros para hoy</p>';
-                return;
-            }
+            registrosCache = response.registros;
+            ultimaActualizacionRegistros = now;
             
-            registrosHoyList.innerHTML = '';
-            response.registros.forEach(registro => {
-                const item = document.createElement('div');
-                item.className = `record-item ${registro.tipo}`;
-                item.innerHTML = `
-                    <div>
-                        <div class="record-type">${registro.nombre_completo}</div>
-                        <div style="font-size: 12px; color: #6b7280;">${CONFIG.TIPOS_NOMBRES[registro.tipo]}</div>
-                    </div>
-                    <div class="record-time">${formatTime(registro.hora)}</div>
-                `;
-                registrosHoyList.appendChild(item);
-            });
+            renderRegistros(response.registros);
         }
     } catch (error) {
-        console.error('Error:', error);
+        if (CONFIG.DEBUG) {
+            console.error('[Supervisor] Error cargar registros:', error);
+        }
         registrosHoyList.innerHTML = '<p class="loading">Error al cargar registros</p>';
     }
 }
 
 /**
+ * NUEVA: Renderiza registros
+ * OPTIMIZADO: Con DocumentFragment
+ */
+function renderRegistros(registros) {
+    if (registros.length === 0) {
+        registrosHoyList.innerHTML = '<p class="loading">No hay registros para hoy</p>';
+        return;
+    }
+    
+    const fragment = document.createDocumentFragment();
+    
+    registros.forEach(registro => {
+        const item = document.createElement('div');
+        item.className = `record-item ${registro.tipo}`;
+        item.innerHTML = `
+            <div>
+                <div class="record-type">${registro.nombre_completo}</div>
+                <div style="font-size: 12px; color: #6b7280;">${CONFIG.TIPOS_NOMBRES[registro.tipo]}</div>
+            </div>
+            <div class="record-time">${formatTime(registro.hora)}</div>
+        `;
+        fragment.appendChild(item);
+    });
+    
+    registrosHoyList.innerHTML = '';
+    registrosHoyList.appendChild(fragment);
+}
+
+/**
  * Programa un día de descanso
- * CON DEBUG
+ * OPTIMIZADO: Sin logs de debug
  */
 async function programarDiaDescanso() {
     const empleadoId = parseInt(selectEmpleadoDescanso.value);
     const fecha = fechaDescanso.value;
     const motivo = motivoDescanso.value;
     
-    // ✅ DEBUG
-    console.log('=== DEBUG PROGRAMAR DESCANSO ===');
-    console.log('empleadoId:', empleadoId, 'tipo:', typeof empleadoId);
-    console.log('fecha:', fecha, 'tipo:', typeof fecha);
-    console.log('motivo:', motivo, 'tipo:', typeof motivo);
-    
     if (!empleadoId || !fecha || !motivo) {
         showMessage('Completa todos los campos', 'error');
         return;
     }
     
-    if (!confirm('¿Programar día de descanso?')) {
-        return;
-    }
+    if (!confirm('¿Programar día de descanso?')) return;
     
     toggleLoader(true);
     
     try {
-        const requestData = {
+        const response = await callAPI({
             action: 'programar_dia_descanso',
             empleado_id: empleadoId,
             fecha: fecha,
             motivo: motivo
-        };
-        
-        // ✅ DEBUG
-        console.log('Datos a enviar:', requestData);
-        console.log('JSON stringified:', JSON.stringify(requestData));
-        
-        const response = await callAPI(requestData);
-        
-        // ✅ DEBUG
-        console.log('Respuesta recibida:', response);
+        });
         
         if (response.success) {
             showMessage(response.message, 'success');
             fechaDescanso.value = '';
+            selectEmpleadoDescanso.value = '';
             await loadDiasDescanso();
         } else {
             showMessage(response.message, 'error');
         }
     } catch (error) {
-        console.error('Error:', error);
+        if (CONFIG.DEBUG) {
+            console.error('[Supervisor] Error programar descanso:', error);
+        }
         showMessage('Error al programar día de descanso', 'error');
     } finally {
         toggleLoader(false);
@@ -281,9 +304,12 @@ async function programarDiaDescanso() {
 
 /**
  * Carga los días de descanso programados
+ * OPTIMIZADO: Con DocumentFragment
  */
 async function loadDiasDescanso() {
     try {
+        diasDescansoList.innerHTML = '<p class="loading">Cargando...</p>';
+        
         const response = await callAPI({
             action: 'obtener_todos_dias_descanso'
         });
@@ -294,9 +320,9 @@ async function loadDiasDescanso() {
                 return;
             }
             
-            diasDescansoList.innerHTML = '';
+            const fragment = document.createDocumentFragment();
+            
             response.dias_descanso.forEach(dia => {
-                // ✅ CORRECCIÓN: Usar campo "Empleado" con mayúscula
                 const nombreEmpleado = dia.Empleado || 'Sin nombre';
                 const aprobadoPor = dia.aprobado_por || 'Sin info';
                 
@@ -309,68 +335,58 @@ async function loadDiasDescanso() {
                     </div>
                     <div style="font-size: 12px; color: #6b7280;">Por: ${aprobadoPor}</div>
                 `;
-                diasDescansoList.appendChild(item);
+                fragment.appendChild(item);
             });
+            
+            diasDescansoList.innerHTML = '';
+            diasDescansoList.appendChild(fragment);
         }
     } catch (error) {
-        console.error('Error:', error);
+        if (CONFIG.DEBUG) {
+            console.error('[Supervisor] Error cargar descansos:', error);
+        }
         diasDescansoList.innerHTML = '<p class="loading">Error al cargar días de descanso</p>';
     }
 }
 
-
 /**
  * Registra una falta
- * CON DEBUG
+ * OPTIMIZADO: Sin logs de debug
  */
 async function registrarFalta() {
     const empleadoId = parseInt(selectEmpleadoFalta.value);
     const fecha = fechaFalta.value;
     const motivo = tipoFalta.value;
     
-    // ✅ DEBUG
-    console.log('=== DEBUG REGISTRAR FALTA ===');
-    console.log('empleadoId:', empleadoId, 'tipo:', typeof empleadoId);
-    console.log('fecha:', fecha, 'tipo:', typeof fecha);
-    console.log('motivo:', motivo, 'tipo:', typeof motivo);
-    
     if (!empleadoId || !fecha || !motivo) {
         showMessage('Completa todos los campos', 'error');
         return;
     }
     
-    if (!confirm('¿Registrar esta falta?')) {
-        return;
-    }
+    if (!confirm('¿Registrar esta falta?')) return;
     
     toggleLoader(true);
     
     try {
-        const requestData = {
+        const response = await callAPI({
             action: 'registrar_falta',
             empleado_id: empleadoId,
             fecha: fecha,
             motivo: motivo
-        };
-        
-        // ✅ DEBUG
-        console.log('Datos a enviar:', requestData);
-        console.log('JSON stringified:', JSON.stringify(requestData));
-        
-        const response = await callAPI(requestData);
-        
-        // ✅ DEBUG
-        console.log('Respuesta recibida:', response);
+        });
         
         if (response.success) {
             showMessage(response.message, 'success');
             fechaFalta.value = '';
+            selectEmpleadoFalta.value = '';
             await loadFaltasRegistradas();
         } else {
             showMessage(response.message, 'error');
         }
     } catch (error) {
-        console.error('Error:', error);
+        if (CONFIG.DEBUG) {
+            console.error('[Supervisor] Error registrar falta:', error);
+        }
         showMessage('Error al registrar falta', 'error');
     } finally {
         toggleLoader(false);
@@ -379,9 +395,12 @@ async function registrarFalta() {
 
 /**
  * Carga las faltas registradas
+ * OPTIMIZADO: Con DocumentFragment
  */
 async function loadFaltasRegistradas() {
     try {
+        faltasRegistradasList.innerHTML = '<p class="loading">Cargando...</p>';
+        
         const response = await callAPI({
             action: 'obtener_faltas'
         });
@@ -392,9 +411,9 @@ async function loadFaltasRegistradas() {
                 return;
             }
             
-            faltasRegistradasList.innerHTML = '';
+            const fragment = document.createDocumentFragment();
+            
             response.faltas.forEach(falta => {
-                // ✅ CORRECCIÓN: Usar campo "Empleado" con mayúscula
                 const nombreEmpleado = falta.Empleado || 'Sin nombre';
                 const registradaPor = falta.registrada_por || 'Sin info';
                 
@@ -407,15 +426,19 @@ async function loadFaltasRegistradas() {
                     </div>
                     <div style="font-size: 12px; color: #6b7280;">Por: ${registradaPor}</div>
                 `;
-                faltasRegistradasList.appendChild(item);
+                fragment.appendChild(item);
             });
+            
+            faltasRegistradasList.innerHTML = '';
+            faltasRegistradasList.appendChild(fragment);
         }
     } catch (error) {
-        console.error('Error:', error);
+        if (CONFIG.DEBUG) {
+            console.error('[Supervisor] Error cargar faltas:', error);
+        }
         faltasRegistradasList.innerHTML = '<p class="loading">Error al cargar faltas</p>';
     }
 }
-
 
 /**
  * Registra asistencia personal del supervisor
@@ -439,7 +462,9 @@ async function registrarMiAsistencia(tipo) {
             showMessage(response.message, 'error');
         }
     } catch (error) {
-        console.error('Error:', error);
+        if (CONFIG.DEBUG) {
+            console.error('[Supervisor] Error mi registro:', error);
+        }
         showMessage('Error al registrar asistencia', 'error');
     } finally {
         toggleLoader(false);
@@ -448,11 +473,14 @@ async function registrarMiAsistencia(tipo) {
 
 /**
  * Carga los registros personales del supervisor
+ * OPTIMIZADO: Con DocumentFragment
  */
 async function loadMisRegistros() {
     if (!supervisorActual) return;
     
     try {
+        misRegistrosList.innerHTML = '<p class="loading">Cargando...</p>';
+        
         const response = await callAPI({
             action: 'obtener_registros_hoy',
             empleado_id: supervisorActual.id
@@ -464,7 +492,8 @@ async function loadMisRegistros() {
                 return;
             }
             
-            misRegistrosList.innerHTML = '';
+            const fragment = document.createDocumentFragment();
+            
             response.registros.forEach(registro => {
                 const item = document.createElement('div');
                 item.className = `record-item ${registro.tipo}`;
@@ -472,29 +501,32 @@ async function loadMisRegistros() {
                     <div class="record-type">${CONFIG.TIPOS_NOMBRES[registro.tipo]}</div>
                     <div class="record-time">${formatTime(registro.hora)}</div>
                 `;
-                misRegistrosList.appendChild(item);
+                fragment.appendChild(item);
             });
+            
+            misRegistrosList.innerHTML = '';
+            misRegistrosList.appendChild(fragment);
         }
     } catch (error) {
-        console.error('Error:', error);
+        if (CONFIG.DEBUG) {
+            console.error('[Supervisor] Error mis registros:', error);
+        }
         misRegistrosList.innerHTML = '<p class="loading">Error al cargar registros</p>';
     }
 }
 
-// Sistema de tabs
+// Sistema de tabs con LAZY LOADING
 document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         const tabName = btn.dataset.tab;
         
-        // Cambiar botón activo
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         
-        // Cambiar contenido activo
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         document.getElementById(`tab-${tabName}`).classList.add('active');
         
-        // Cargar datos según el tab
+        // LAZY LOADING: Cargar datos solo cuando se necesitan
         if (tabName === 'dias-descanso') {
             loadDiasDescanso();
         } else if (tabName === 'faltas') {
@@ -510,6 +542,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!checkSession()) return;
     
     loadSupervisorInfo();
+    
+    // Cargar empleados y registros iniciales
     await loadEmpleados();
     await loadRegistrosHoy();
     
@@ -549,11 +583,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
     
-    // Auto-actualizar cada 30 segundos
-    setInterval(loadRegistrosHoy, 30000);
+    // OPTIMIZADO: Auto-actualizar registros cada 5 minutos (no cada 30 seg)
+    setInterval(() => loadRegistrosHoy(true), 5 * 60 * 1000);
+    
+    // NUEVO: Actualizar cuando vuelve a estar visible
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            loadRegistrosHoy(true);
+        }
+    });
     
     initInactivityTimeout();
 });
-
-
-
