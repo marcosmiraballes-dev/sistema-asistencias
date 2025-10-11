@@ -727,6 +727,7 @@ function renderDiasDescanso() {
 
 /**
  * Filtra y muestra resultados según el tipo de card clickeado
+ * CORREGIDO: Mejor debugging
  */
 function filtrarDashboard(tipo) {
     const filteredResults = document.getElementById('filteredResults');
@@ -737,10 +738,20 @@ function filtrarDashboard(tipo) {
     let titulo = '';
     let datos = [];
     
+    // DEBUG
+    console.log('=== DEBUG FILTRAR ===');
+    console.log('Tipo:', tipo);
+    console.log('registrosHoyData:', registrosHoyData);
+    console.log('diasDescansoData:', diasDescansoData);
+    
     switch(tipo) {
         case 'tarde':
             titulo = '⚠️ Llegadas Tarde Hoy';
-            datos = registrosHoyData.filter(r => r.tipo === 'entrada' && r.tarde);
+            datos = registrosHoyData.filter(r => {
+                console.log('Registro:', r, 'tipo:', r.tipo, 'tarde:', r.tarde);
+                return r.tipo === 'entrada' && r.tarde;
+            });
+            console.log('Llegadas tarde encontradas:', datos);
             break;
             
         case 'descanso-total':
@@ -761,12 +772,19 @@ function filtrarDashboard(tipo) {
         case 'Falta sin Justificación':
         case 'Falta con Justificación':
             titulo = `📋 ${tipo}`;
-            datos = diasDescansoData.filter(d => d.motivo === tipo);
+            datos = diasDescansoData.filter(d => {
+                console.log('Día:', d, 'motivo:', d.motivo);
+                return d.motivo === tipo;
+            });
+            console.log(`${tipo} encontrados:`, datos);
             break;
             
         default:
+            console.log('Tipo no reconocido:', tipo);
             return;
     }
+    
+    console.log('Datos finales:', datos);
     
     resultadosSinFiltrar = datos;
     cargarServiciosFiltro();
@@ -989,3 +1007,4 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     initInactivityTimeout();
 });
+
