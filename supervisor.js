@@ -73,14 +73,14 @@ function checkSession() {
     supervisorActual = getEmpleadoData();
     
     if (!supervisorActual?.id) {
-        window.location.href = 'index.html';
+        window.location.href = 'index.html' + window.location.search; // ✅ AGREGADO
         return false;
     }
     
     // Verificar que sea supervisor o admin
     if (supervisorActual.rol !== 'supervisor' && supervisorActual.rol !== 'admin') {
         alert('No tienes permisos para acceder a esta página');
-        window.location.href = 'dashboard.html';
+        window.location.href = 'dashboard.html' + window.location.search; // ✅ AGREGADO
         return false;
     }
     
@@ -583,12 +583,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
     
-    logoutBtn.addEventListener('click', () => {
-        if (confirm('¿Cerrar sesión?')) {
-            clearEmpleadoData();
-            window.location.href = 'index.html';
-        }
-    });
+        logoutBtn.addEventListener('click', () => {
+            if (confirm('¿Cerrar sesión?')) {
+                clearEmpleadoData();
+                window.location.href = 'index.html' + window.location.search; // ✅ AGREGADO
+            }
+        });
     
     // OPTIMIZADO: Auto-actualizar registros cada 5 minutos (no cada 30 seg)
     setInterval(() => loadRegistrosHoy(true), 5 * 60 * 1000);
@@ -602,4 +602,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     initInactivityTimeout();
 });
+
 
