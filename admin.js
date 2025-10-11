@@ -777,16 +777,19 @@ function filtrarDashboard(tipo) {
         case 'Vacaciones':
         case 'Permiso Personal':
         case 'Incapacidad':
+            // Estos siguen en diasDescansoData
+            titulo = `📋 ${tipo}`;
+            datos = diasDescansoData.filter(d => d.motivo === tipo);
+            break;
+            
+        // ✅ NUEVO: Casos para faltas (buscar en variable global o hacer nueva petición)
         case 'Suspensión':
         case 'Falta sin Justificación':
         case 'Falta con Justificación':
             titulo = `📋 ${tipo}`;
-            datos = diasDescansoData.filter(d => {
-                console.log('Día:', d, 'motivo:', d.motivo);
-                return d.motivo === tipo;
-            });
-            console.log(`${tipo} encontrados:`, datos);
-            break;
+            // Necesitamos hacer una petición para obtener faltas
+            cargarYFiltrarFaltas(tipo, filteredTitle, filteredContent, filteredResults);
+            return; // Salir de la función porque cargarYFiltrarFaltas es async
             
         default:
             console.log('Tipo no reconocido:', tipo);
@@ -807,6 +810,35 @@ function filtrarDashboard(tipo) {
     
     filteredResults.style.display = 'block';
     filteredResults.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/**
+ * ✅ NUEVA FUNCIÓN: Carga y filtra faltas
+ */
+async function cargarYFiltrarFaltas(tipo, filteredTitle, filteredContent, filteredResults) {
+    try {
+        filteredContent.innerHTML = '<p class="loading">Cargando...</p>';
+        filteredResults.style.display = 'block';
+        
+        const response = await callAPI({ action: 'obtener_faltas' });
+        
+        if (response.success) {
+            const faltas = response.faltas.filter(f => f.motivo === tipo);
+            
+            resultadosSinFiltrar = faltas;
+            cargarServiciosFiltro();
+            
+            filteredTitle.textContent = `📋 ${tipo}`;
+            filteredContent.innerHTML = generarListaDescansos(faltas);
+            
+            filteredResults.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+            filteredContent.innerHTML = '<p class="loading">Error al cargar faltas</p>';
+        }
+    } catch (error) {
+        console.error('Error al cargar faltas:', error);
+        filteredContent.innerHTML = '<p class="loading">Error al cargar faltas</p>';
+    }
 }
 
 /**
@@ -1016,5 +1048,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     initInactivityTimeout();
 });
+
 
 
