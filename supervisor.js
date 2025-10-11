@@ -397,6 +397,10 @@ async function registrarFalta() {
  * Carga las faltas registradas
  * OPTIMIZADO: Con DocumentFragment
  */
+/**
+ * Carga las faltas registradas
+ * CORREGIDO: Mejor manejo de nombres
+ */
 async function loadFaltasRegistradas() {
     try {
         faltasRegistradasList.innerHTML = '<p class="loading">Cargando...</p>';
@@ -404,6 +408,8 @@ async function loadFaltasRegistradas() {
         const response = await callAPI({
             action: 'obtener_faltas'
         });
+        
+        console.log('DEBUG Faltas:', response); // Temporal para ver qué llega
         
         if (response.success && response.faltas) {
             if (response.faltas.length === 0) {
@@ -414,7 +420,8 @@ async function loadFaltasRegistradas() {
             const fragment = document.createDocumentFragment();
             
             response.faltas.forEach(falta => {
-                const nombreEmpleado = falta.Empleado || 'Sin nombre';
+                // MÚLTIPLES FALLBACKS para el nombre
+                const nombreEmpleado = falta.Empleado || falta.empleado_nombre || falta.nombre_completo || falta.nombre || `ID: ${falta.empleado_id}` || 'Sin nombre';
                 const registradaPor = falta.registrada_por || 'Sin info';
                 
                 const item = document.createElement('div');
@@ -595,3 +602,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     initInactivityTimeout();
 });
+
