@@ -155,11 +155,12 @@ function loadAdminInfo() {
  */
 async function loadDashboardStats() {
     try {
-        // Cargar solo empleados activos y registros de hoy
-        const [empResponse, regResponse, ddResponse] = await Promise.all([
+        // ✅ Cargar empleados, registros, días de descanso Y FALTAS
+        const [empResponse, regResponse, ddResponse, faltasResponse] = await Promise.all([
             callAPI({ action: 'listar_empleados', solo_activos: true }),
             callAPI({ action: 'obtener_todos_registros', fecha: getCurrentDate() }),
-            callAPI({ action: 'obtener_todos_dias_descanso' })
+            callAPI({ action: 'obtener_todos_dias_descanso' }),
+            callAPI({ action: 'obtener_faltas' }) // ✅ NUEVA LLAMADA
         ]);
         
         // Empleados activos
@@ -200,12 +201,18 @@ async function loadDashboardStats() {
             }
         }
         
+        // ✅ NUEVO: Variable global para faltas
+        let faltasData = [];
+        if (faltasResponse && faltasResponse.success) {
+            faltasData = faltasResponse.faltas;
+        }
+        
         // Días de descanso
         if (ddResponse.success) {
             diasDescansoData = ddResponse.dias_descanso;
             setCache('diasDescanso', diasDescansoData);
             
-            // Filtrar solo descansos legítimos
+            // Filtrar solo descansos legítimos (excluyendo suspensiones y faltas)
             const descansosLegitimos = diasDescansoData.filter(d => 
                 d.motivo === 'Vacaciones' || 
                 d.motivo === 'Permiso Personal' || 
@@ -215,13 +222,15 @@ async function loadDashboardStats() {
             );
             statDiasDescanso.textContent = descansosLegitimos.length;
             
-            // Contar por motivo
+            // ✅ Contar por motivo (solo de Dias_descanso)
             document.getElementById('statVacaciones').textContent = diasDescansoData.filter(d => d.motivo === 'Vacaciones').length;
             document.getElementById('statPermisos').textContent = diasDescansoData.filter(d => d.motivo === 'Permiso Personal').length;
             document.getElementById('statIncapacidades').textContent = diasDescansoData.filter(d => d.motivo === 'Incapacidad').length;
-            document.getElementById('statSuspensiones').textContent = diasDescansoData.filter(d => d.motivo === 'Suspensión').length;
-            document.getElementById('statFaltasSin').textContent = diasDescansoData.filter(d => d.motivo === 'Falta sin Justificación').length;
-            document.getElementById('statFaltasCon').textContent = diasDescansoData.filter(d => d.motivo === 'Falta con Justificación').length;
+            
+            // ✅ CORREGIDO: Contar suspensiones y faltas desde faltasData
+            document.getElementById('statSuspensiones').textContent = faltasData.filter(f => f.motivo === 'Suspensión').length;
+            document.getElementById('statFaltasSin').textContent = faltasData.filter(f => f.motivo === 'Falta sin Justificación').length;
+            document.getElementById('statFaltasCon').textContent = faltasData.filter(f => f.motivo === 'Falta con Justificación').length;
         }
         
     } catch (error) {
@@ -1007,4 +1016,5 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     initInactivityTimeout();
 });
+
 
