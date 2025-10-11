@@ -1,11 +1,65 @@
 /**
- * config.js - Configuración del Frontend
- * VERSIÓN OPTIMIZADA PARA PRODUCCIÓN
+ * config.js - Configuración Multi-Empresa
+ * Sistema de Asistencias por QR
+ * VERSIÓN 2.0 - MULTI-TENANT
  */
 
+// ============================================
+// DETECCIÓN AUTOMÁTICA DE EMPRESA
+// ============================================
+
+const urlParams = new URLSearchParams(window.location.search);
+const EMPRESA_ID = urlParams.get('empresa') || 'demo';
+
+// ============================================
+// CONFIGURACIÓN POR EMPRESA
+// ============================================
+
+const CONFIG_EMPRESAS = {
+    empresa_a: {
+        id: 'empresa_a',
+        nombre: 'Divinely Cleans',
+        api_url: 'https://script.google.com/macros/s/AKfycbz6uJAYdFxqlKL4B-CwiCp9xZeC4RS4ZfbEJnUD_K4wCN3xHjjlI4M1Ljaq5WYar3Sx/exec'
+    },
+    empresa_b: {
+        id: 'empresa_b',
+        nombre: 'Grupo Tejon',
+        api_url: 'https://script.google.com/macros/s/AKfycby5ENvo9nS8xv4kyrnNQrinr8htU7McVs6ZoWZHmRp03WezTDFcshRL_hcGsMB3_5x5/exec'
+    },
+    empresa_c: {
+        id: 'empresa_c',
+        nombre: 'Elefantes Verdes',
+        api_url: 'https://script.google.com/macros/s/AKfycbwXQ2vIsT52HutNNzM56C0s9xvJaxsLvPRxcgBZuXmCiMADJYnwucbcO7AQF_XvWsVhww/exec'
+    },
+    demo: {
+        id: 'demo',
+        nombre: '⚠️ Demo',
+        api_url: ''
+    }
+};
+
+// ============================================
+// VALIDACIÓN Y CONFIGURACIÓN ACTIVA
+// ============================================
+
+const EMPRESA_CONFIG = CONFIG_EMPRESAS[EMPRESA_ID];
+
+if (!EMPRESA_CONFIG) {
+    alert('❌ Error: Empresa no válida\n\nPor favor escanea un código QR válido.');
+    throw new Error('Empresa no encontrada: ' + EMPRESA_ID);
+}
+
+if (!EMPRESA_CONFIG.api_url) {
+    alert('⚠️ Esta aplicación requiere escanear un código QR válido.\n\nPor favor, escanea el código QR de tu empresa.');
+}
+
+// ============================================
+// CONFIGURACIÓN GENERAL DEL SISTEMA
+// ============================================
+
 const CONFIG = {
-    // 🔑 URL de tu Web App de Google Apps Script
-    API_URL: 'https://script.google.com/macros/s/AKfycbxo60Ncsdatuzv3FEV56BImMCrjCsxnVa5st1VaLuIqlqwGp2BhgRP8UrAoJn1bWYvVIA/exec',
+    // 🔑 URL de la API (específica de la empresa actual)
+    API_URL: EMPRESA_CONFIG.api_url,
     
     // Tipos de registro
     TIPOS_REGISTRO: {
@@ -28,31 +82,38 @@ const CONFIG = {
         EMPLEADO: 'empleado_data'
     },
     
-    // ✨ NUEVO: Configuración de red
+    // Configuración de red
     NETWORK: {
-        TIMEOUT: 30000,        // 30 segundos timeout
-        MAX_RETRIES: 2,        // Reintentar 2 veces si falla
-        RETRY_DELAY: 1000      // 1 segundo entre reintentos
+        TIMEOUT: 30000,
+        MAX_RETRIES: 2,
+        RETRY_DELAY: 1000
     },
     
-    // ✨ NUEVO: Modo debug (solo para desarrollo)
-    DEBUG: false  // Cambiar a true solo para debugging
+    // Modo debug
+    DEBUG: false
 };
+
+// ============================================
+// FUNCIONES DE API
+// ============================================
 
 /**
  * Función para hacer peticiones al API con retry logic
- * @param {Object} data - Datos a enviar
- * @param {number} retryCount - Contador de reintentos (interno)
- * @returns {Promise<Object>} Respuesta del servidor
  */
 async function callAPI(data, retryCount = 0) {
+    if (!CONFIG.API_URL) {
+        return {
+            success: false,
+            message: '⚠️ No hay conexión configurada. Escanea un código QR válido.'
+        };
+    }
+    
     try {
-        // Debug logs solo si está activado
         if (CONFIG.DEBUG) {
             console.log('[API] Request:', data);
+            console.log('[API] Empresa:', EMPRESA_CONFIG.nombre);
         }
         
-        // Controller para timeout
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), CONFIG.NETWORK.TIMEOUT);
         
@@ -69,10 +130,7 @@ async function callAPI(data, retryCount = 0) {
             
             clearTimeout(timeoutId);
             
-            // Leer respuesta como texto
             const textResponse = await response.text();
-            
-            // Parsear JSON
             const result = JSON.parse(textResponse);
             
             if (CONFIG.DEBUG) {
@@ -84,27 +142,21 @@ async function callAPI(data, retryCount = 0) {
         } catch (fetchError) {
             clearTimeout(timeoutId);
             
-            // Si es timeout o error de red Y aún tenemos reintentos
             if (retryCount < CONFIG.NETWORK.MAX_RETRIES) {
                 if (CONFIG.DEBUG) {
                     console.log(`[API] Retry ${retryCount + 1}/${CONFIG.NETWORK.MAX_RETRIES}`);
                 }
                 
-                // Esperar antes de reintentar
                 await sleep(CONFIG.NETWORK.RETRY_DELAY);
-                
-                // Reintentar recursivamente
                 return callAPI(data, retryCount + 1);
             }
             
-            // Si ya no hay más reintentos, lanzar el error
             throw fetchError;
         }
         
     } catch (error) {
         console.error('[API] Error:', error.message);
         
-        // Mensajes de error más amigables
         let userMessage = 'Error de conexión';
         
         if (error.name === 'AbortError') {
@@ -130,11 +182,19 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// ============================================
+// FUNCIONES DE SESIÓN
+// ============================================
+
 /**
  * Guarda los datos del empleado en el navegador
  */
 function saveEmpleadoData(empleadoData) {
     try {
+        // Agregar info de la empresa al empleado
+        empleadoData.empresa_id = EMPRESA_ID;
+        empleadoData.empresa_nombre = EMPRESA_CONFIG.nombre;
+        
         localStorage.setItem(CONFIG.STORAGE_KEYS.EMPLEADO, JSON.stringify(empleadoData));
     } catch (error) {
         console.error('[Storage] Error al guardar:', error.message);
@@ -147,7 +207,18 @@ function saveEmpleadoData(empleadoData) {
 function getEmpleadoData() {
     try {
         const data = localStorage.getItem(CONFIG.STORAGE_KEYS.EMPLEADO);
-        return data ? JSON.parse(data) : null;
+        if (!data) return null;
+        
+        const empleado = JSON.parse(data);
+        
+        // ✅ VALIDAR: Que el empleado sea de la misma empresa
+        if (empleado.empresa_id && empleado.empresa_id !== EMPRESA_ID) {
+            console.warn('[Session] Empleado de otra empresa. Cerrando sesión.');
+            clearEmpleadoData();
+            return null;
+        }
+        
+        return empleado;
     } catch (error) {
         console.error('[Storage] Error al leer:', error.message);
         return null;
@@ -165,9 +236,12 @@ function clearEmpleadoData() {
     }
 }
 
+// ============================================
+// FUNCIONES DE UTILIDAD
+// ============================================
+
 /**
  * Formatea una fecha en formato legible
- * OPTIMIZADO: Cachea el formatter
  */
 const dateFormatter = new Intl.DateTimeFormat('es-MX', { 
     year: 'numeric', 
@@ -183,46 +257,40 @@ function formatDate(fecha) {
 
 /**
  * Formatea una hora en formato legible
- * OPTIMIZADO: Versión más eficiente
  */
 function formatTime(hora) {
     if (!hora) return '';
     
-    // Si es un timestamp ISO
     if (typeof hora === 'string' && (hora.includes('T') || hora.includes('Z'))) {
         const date = new Date(hora);
         return `${String(date.getUTCHours()).padStart(2, '0')}:${String(date.getUTCMinutes()).padStart(2, '0')}`;
     }
     
-    // Si ya es HH:MM:SS o HH:MM
     const parts = hora.toString().split(':');
     return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`;
 }
 
 /**
  * Obtiene la fecha actual en formato YYYY-MM-DD
- * OPTIMIZADO: Versión más simple
  */
 function getCurrentDate() {
     return new Date().toISOString().split('T')[0];
 }
 
-/**
- * Sistema de timeout de sesión por inactividad
- * OPTIMIZADO: Menos eventos, mejor rendimiento
- */
+// ============================================
+// TIMEOUT DE INACTIVIDAD
+// ============================================
+
 const SESSION_TIMEOUT = 10 * 60 * 1000; // 10 minutos
 let inactivityTimer;
 let lastActivity = Date.now();
 
 /**
  * Reinicia el temporizador de inactividad
- * OPTIMIZADO: Throttled - solo resetea si pasó 1 segundo desde última actividad
  */
 function resetInactivityTimer() {
     const now = Date.now();
     
-    // Throttle: solo resetear si pasó al menos 1 segundo
     if (now - lastActivity < 1000) return;
     
     lastActivity = now;
@@ -233,24 +301,21 @@ function resetInactivityTimer() {
     
     inactivityTimer = setTimeout(() => {
         clearEmpleadoData();
-        alert('Tu sesión ha expirado por inactividad. Por favor, inicia sesión nuevamente.');
-        window.location.href = 'index.html';
+        alert('⏱️ Tu sesión ha expirado por inactividad. Por favor, inicia sesión nuevamente.');
+        window.location.href = 'index.html?empresa=' + EMPRESA_ID;
     }, SESSION_TIMEOUT);
 }
 
 /**
  * Inicializar el sistema de timeout
- * OPTIMIZADO: Menos eventos, mejor para móviles
  */
 function initInactivityTimeout() {
-    // Solo eventos importantes (no mousemove que es muy frecuente)
     const eventos = ['mousedown', 'keypress', 'touchstart', 'click', 'scroll'];
     
     eventos.forEach(evento => {
         document.addEventListener(evento, resetInactivityTimer, { passive: true });
     });
     
-    // Detectar cambios de visibilidad (cuando cambia de tab/app)
     document.addEventListener('visibilitychange', () => {
         if (!document.hidden) {
             resetInactivityTimer();
@@ -261,23 +326,49 @@ function initInactivityTimeout() {
 }
 
 /**
- * ✨ NUEVA: Detectar conexión offline/online
+ * Detectar conexión offline/online
  */
 function initNetworkMonitoring() {
     window.addEventListener('online', () => {
         if (CONFIG.DEBUG) {
             console.log('[Network] Conexión restaurada');
         }
-        // Opcional: Mostrar notificación al usuario
     });
     
     window.addEventListener('offline', () => {
         console.warn('[Network] Sin conexión a internet');
-        // Opcional: Mostrar notificación al usuario
     });
 }
 
+// ============================================
+// MOSTRAR INFO DE EMPRESA
+// ============================================
+
+// Log de debug solo si está activado
+if (CONFIG.DEBUG) {
+    console.log('=== CONFIGURACIÓN DE EMPRESA ===');
+    console.log('Empresa ID:', EMPRESA_ID);
+    console.log('Empresa Nombre:', EMPRESA_CONFIG.nombre);
+    console.log('API URL:', CONFIG.API_URL ? 'Configurada ✅' : 'No configurada ❌');
+}
+
+// Actualizar título de la página con nombre de empresa
+document.addEventListener('DOMContentLoaded', () => {
+    // Actualizar título si existe
+    const titleElements = document.querySelectorAll('.empresa-nombre, .app-title');
+    titleElements.forEach(el => {
+        if (el.textContent.includes('Sistema de Asistencias')) {
+            el.textContent = 'Sistema de Asistencias - ' + EMPRESA_CONFIG.nombre;
+        }
+    });
+    
+    // Mostrar empresa en la consola para el usuario
+    if (EMPRESA_ID !== 'demo') {
+        console.log(`%c🏢 ${EMPRESA_CONFIG.nombre}`, 'color: #3b82f6; font-size: 16px; font-weight: bold;');
+    }
+});
 // Inicializar monitoreo de red
 if (typeof window !== 'undefined') {
     initNetworkMonitoring();
 }
+
