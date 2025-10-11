@@ -129,13 +129,13 @@ function checkSession() {
     adminActual = getEmpleadoData();
     
     if (!adminActual || !adminActual.id) {
-        window.location.href = 'index.html';
+        window.location.href = 'index.html' + window.location.search; // ✅ AGREGADO
         return false;
     }
     
     if (adminActual.rol !== 'admin') {
         alert('No tienes permisos para acceder a esta página');
-        window.location.href = 'dashboard.html';
+        window.location.href = 'dashboard.html' + window.location.search; // ✅ AGREGADO
         return false;
     }
     
@@ -1031,7 +1031,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     logoutBtn.addEventListener('click', () => {
         if (confirm('¿Cerrar sesión?')) {
             clearEmpleadoData();
-            window.location.href = 'index.html';
+            window.location.href = 'index.html' + window.location.search; // ✅ AGREGADO
         }
     });
     
@@ -1048,6 +1048,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     initInactivityTimeout();
 });
+
 
 
 
