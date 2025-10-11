@@ -219,7 +219,7 @@ function renderRegistros(registros) {
 function handleLogout() {
     if (confirm('¿Cerrar sesión?')) {
         clearEmpleadoData();
-        window.location.href = 'index.html';
+        window.location.href = 'index.html' + window.location.search; // ✅ AGREGADO
     }
 }
 
@@ -286,4 +286,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     initInactivityTimeout();
 });
+
 
